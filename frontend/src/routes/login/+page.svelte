@@ -1,5 +1,6 @@
 <script>
   import { goto } from "$app/navigation";
+  import { auth } from "../../stores/auth";
 
   let username = "";
   let password = "";
@@ -23,6 +24,13 @@
       // Store token
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("is_admin", data.is_admin);
+
+      // Update store
+      auth.set({
+        isAuthenticated: true,
+        isAdmin: data.is_admin,
+        user: null,
+      });
 
       // Redirect
       if (data.is_admin) {
