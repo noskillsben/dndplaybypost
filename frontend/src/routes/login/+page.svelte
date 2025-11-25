@@ -1,6 +1,7 @@
 <script>
   import { goto } from "$app/navigation";
   import { auth } from "../../stores/auth";
+  import { API_URL } from "../../lib/config";
 
   let username = "";
   let password = "";
@@ -9,7 +10,7 @@
   async function handleLogin() {
     error = "";
     try {
-      const res = await fetch("http://localhost:8000/auth/login", {
+      const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),

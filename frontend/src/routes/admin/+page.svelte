@@ -1,5 +1,6 @@
 <script>
     import { onMount } from "svelte";
+    import { API_URL } from "../../lib/config";
 
     let stats = { user_count: 0, campaign_count: 0 };
     let error = "";
@@ -7,7 +8,7 @@
     onMount(async () => {
         try {
             const token = localStorage.getItem("token");
-            const res = await fetch("http://localhost:8000/admin/stats", {
+            const res = await fetch(`${API_URL}/admin/stats`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },

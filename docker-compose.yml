@@ -97,6 +97,7 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV}
       PUBLIC_API_URL: ${PUBLIC_API_URL}
+      VITE_API_URL: ${VITE_API_URL}
       ORIGIN: ${ORIGIN}
     volumes:
       # Development volume mount (comment out for production)
