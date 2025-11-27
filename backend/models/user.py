@@ -1,5 +1,6 @@
 from sqlalchemy import Column, String, Boolean, DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 import uuid
 from core.database import Base
 
@@ -12,3 +13,8 @@ class User(Base):
     password_hash = Column(String(255), nullable=False)
     is_admin = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    created_campaigns = relationship("Campaign", back_populates="creator")
+    campaign_memberships = relationship("CampaignMember", back_populates="user")
+    characters = relationship("Character", back_populates="player")
