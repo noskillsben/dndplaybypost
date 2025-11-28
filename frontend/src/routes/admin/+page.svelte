@@ -1,6 +1,6 @@
 <script>
     import { onMount } from "svelte";
-    import { API_URL } from "../../lib/config";
+    import { API_URL } from "$lib/config";
 
     let stats = { user_count: 0, campaign_count: 0 };
     let error = "";

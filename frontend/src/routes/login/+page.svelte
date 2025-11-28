@@ -1,7 +1,7 @@
 <script>
   import { goto } from "$app/navigation";
   import { auth } from "../../stores/auth";
-  import { API_URL } from "../../lib/config";
+  import { API_URL } from "$lib/config";
 
   let username = "";
   let password = "";
@@ -25,12 +25,13 @@
       // Store token
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("is_admin", data.is_admin);
+      localStorage.setItem("username", username);
 
       // Update store
       auth.set({
         isAuthenticated: true,
         isAdmin: data.is_admin,
-        user: null,
+        user: { username },
       });
 
       // Redirect
@@ -54,8 +55,9 @@
 
   <form on:submit|preventDefault={handleLogin} class="space-y-4">
     <div>
-      <label class="block text-gray-400 mb-1">Username</label>
+      <label for="username" class="block text-gray-400 mb-1">Username</label>
       <input
+        id="username"
         type="text"
         bind:value={username}
         class="w-full bg-gray-700 text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -64,8 +66,9 @@
     </div>
 
     <div>
-      <label class="block text-gray-400 mb-1">Password</label>
+      <label for="password" class="block text-gray-400 mb-1">Password</label>
       <input
+        id="password"
         type="password"
         bind:value={password}
         class="w-full bg-gray-700 text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"

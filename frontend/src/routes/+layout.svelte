@@ -7,12 +7,13 @@
   onMount(() => {
     const token = localStorage.getItem("token");
     const is_admin = localStorage.getItem("is_admin") === "true";
+    const username = localStorage.getItem("username");
 
     if (token) {
       auth.set({
         isAuthenticated: true,
         isAdmin: is_admin,
-        user: null, // We could decode the token here if needed
+        user: username ? { username } : null,
       });
     }
   });
@@ -20,6 +21,7 @@
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("is_admin");
+    localStorage.removeItem("username");
     auth.set({ isAuthenticated: false, isAdmin: false, user: null });
     goto("/login");
   }
@@ -32,6 +34,8 @@
     <a href="/" class="text-xl font-bold text-purple-400">D&D PBP</a>
     <div class="space-x-4">
       {#if $auth.isAuthenticated}
+        <a href="/campaigns" class="hover:text-white">Campaigns</a>
+        <a href="/characters" class="hover:text-white">Characters</a>
         {#if $auth.isAdmin}
           <a href="/admin" class="hover:text-white">Admin Dashboard</a>
         {/if}

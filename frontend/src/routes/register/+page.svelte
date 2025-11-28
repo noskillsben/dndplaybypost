@@ -1,7 +1,7 @@
 <script>
   import { goto } from "$app/navigation";
   import { auth } from "../../stores/auth";
-  import { API_URL } from "../../lib/config";
+  import { API_URL } from "$lib/config";
 
   let username = "";
   let email = "";
@@ -48,8 +48,9 @@
 
   <form on:submit|preventDefault={handleRegister} class="space-y-4">
     <div>
-      <label class="block text-gray-400 mb-1">Username</label>
+      <label for="username" class="block text-gray-400 mb-1">Username</label>
       <input
+        id="username"
         type="text"
         bind:value={username}
         class="w-full bg-gray-700 text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -58,8 +59,9 @@
     </div>
 
     <div>
-      <label class="block text-gray-400 mb-1">Email</label>
+      <label for="email" class="block text-gray-400 mb-1">Email</label>
       <input
+        id="email"
         type="email"
         bind:value={email}
         class="w-full bg-gray-700 text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -68,8 +70,9 @@
     </div>
 
     <div>
-      <label class="block text-gray-400 mb-1">Password</label>
+      <label for="password" class="block text-gray-400 mb-1">Password</label>
       <input
+        id="password"
         type="password"
         bind:value={password}
         class="w-full bg-gray-700 text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"

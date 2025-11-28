@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
-from api import auth, admin, campaigns, characters, dice
+from api import auth, admin, campaigns, characters, dice, users
 from api.messages import campaign_messages_router, messages_router
 
 app = FastAPI(title="D&D Play-by-Post API", version="2.0")
@@ -25,6 +25,7 @@ app.include_router(characters.router, prefix="/api")
 app.include_router(campaign_messages_router, prefix="/api")
 app.include_router(messages_router, prefix="/api")
 app.include_router(dice.router, prefix="/api")
+app.include_router(users.router, prefix="/api")
 
 @app.on_event("startup")
 async def startup():

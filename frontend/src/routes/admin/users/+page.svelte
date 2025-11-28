@@ -1,6 +1,6 @@
 <script>
     import { onMount } from "svelte";
-    import { API_URL } from "../../lib/config";
+    import { API_URL } from "$lib/config";
 
     let users = [];
     let error = "";

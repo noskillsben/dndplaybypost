@@ -131,3 +131,11 @@ class MemberAdd(BaseModel):
 
 class MemberUpdateRole(BaseModel):
     role: RoleEnum
+
+
+class UserSearchResponse(BaseModel):
+    id: UUID4
+    username: str
+    
+    class Config:
+        from_attributes = True
