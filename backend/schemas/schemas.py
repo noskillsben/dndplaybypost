@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, UUID4
+from pydantic import BaseModel, Field, UUID4, ConfigDict
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 from models.campaign_member import RoleEnum
@@ -18,16 +18,17 @@ class CampaignUpdate(BaseModel):
 
 
 class CampaignMemberResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     user_id: UUID4
     username: str
     role: RoleEnum
     joined_at: datetime
-    
-    class Config:
-        from_attributes = True
 
 
 class CampaignResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: UUID4
     name: str
     description: Optional[str]
@@ -60,9 +61,6 @@ class CampaignResponse(BaseModel):
             updated_at=campaign.updated_at,
             members=members_data
         )
-    
-    class Config:
-        from_attributes = True
 
 
 # Character Schemas
@@ -82,6 +80,8 @@ class CharacterUpdate(BaseModel):
 
 
 class CharacterResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: UUID4
     campaign_id: UUID4
     player_id: UUID4
@@ -91,9 +91,6 @@ class CharacterResponse(BaseModel):
     notes: Optional[str]
     created_at: datetime
     updated_at: Optional[datetime]
-    
-    class Config:
-        from_attributes = True
 
 
 # Message Schemas
@@ -109,6 +106,8 @@ class MessageUpdate(BaseModel):
 
 
 class MessageResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: UUID4
     campaign_id: UUID4
     user_id: UUID4
@@ -118,9 +117,6 @@ class MessageResponse(BaseModel):
     extra_data: Dict[str, Any]
     created_at: datetime
     updated_at: Optional[datetime]
-    
-    class Config:
-        from_attributes = True
 
 
 # Member Management Schemas
@@ -134,8 +130,7 @@ class MemberUpdateRole(BaseModel):
 
 
 class UserSearchResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: UUID4
     username: str
-    
-    class Config:
-        from_attributes = True
