@@ -134,3 +134,18 @@ class UserSearchResponse(BaseModel):
     
     id: UUID4
     username: str
+
+
+# WebSocket Schemas
+class DiceRollData(BaseModel):
+    """Dice roll data for message extra_data"""
+    expression: str
+    total: int
+    rolls: List[int]
+    breakdown: str
+
+
+class WebSocketMessage(BaseModel):
+    """WebSocket message format"""
+    type: str  # "message", "user_joined", "user_left", "error"
+    data: Dict[str, Any]

@@ -1,7 +1,7 @@
 <script>
   import "../app.css";
   import { onMount } from "svelte";
-  import { auth } from "../stores/auth";
+  import { auth } from "$lib/stores/auth";
   import { goto } from "$app/navigation";
 
   onMount(() => {

@@ -2,7 +2,7 @@
     import { page } from "$app/stores";
     import { onMount } from "svelte";
     import { api } from "$lib/api";
-    import { auth } from "../../../stores/auth";
+    import { auth } from "$lib/stores/auth";
     import { goto } from "$app/navigation";
 
     let character = null;

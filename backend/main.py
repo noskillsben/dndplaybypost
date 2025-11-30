@@ -1,8 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import os
-from api import auth, admin, campaigns, characters, dice, users
+from api import auth, admin, campaigns, characters, dice, users, websocket
 from api.messages import campaign_messages_router, messages_router
 
 @asynccontextmanager
@@ -29,6 +29,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    import logging
+    logger = logging.getLogger("uvicorn")
+    logger.info(f"Incoming request: {request.method} {request.url}")
+    response = await call_next(request)
+    return response
+
 # Include routers
 app.include_router(auth.router, prefix="/api")
 app.include_router(admin.router, prefix="/api")
@@ -38,6 +46,7 @@ app.include_router(campaign_messages_router, prefix="/api")
 app.include_router(messages_router, prefix="/api")
 app.include_router(dice.router, prefix="/api")
 app.include_router(users.router, prefix="/api")
+app.include_router(websocket.router, prefix="/api")
 
 @app.get("/")
 def root():

@@ -1,6 +1,6 @@
 <script>
   import { goto } from "$app/navigation";
-  import { auth } from "../../stores/auth";
+  import { auth } from "$lib/stores/auth";
   import { API_URL } from "$lib/config";
 
   let username = "";

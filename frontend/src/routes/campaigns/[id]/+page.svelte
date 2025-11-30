@@ -2,7 +2,7 @@
     import { page } from "$app/stores";
     import { onMount } from "svelte";
     import { api } from "$lib/api";
-    import { auth } from "../../../stores/auth";
+    import { auth } from "$lib/stores/auth";
     import { goto } from "$app/navigation";
 
     let campaign = null;
@@ -120,6 +120,23 @@
                         >
                             Delete
                         </button>
+                    </div>
+                    <div class="flex gap-4 mb-6">
+                        <a
+                            href="/campaigns/{campaign.id}/chat"
+                            class="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 transition-colors flex items-center gap-2"
+                        >
+                            <span>💬</span>
+                            Open Chat
+                        </a>
+                        {#if isDm}
+                            <a
+                                href="/campaigns/{campaign.id}/edit"
+                                class="px-4 py-2 bg-gray-700 text-white rounded hover:bg-gray-600 transition-colors"
+                            >
+                                Edit Settings
+                            </a>
+                        {/if}
                     </div>
                 {/if}
             </div>

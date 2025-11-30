@@ -1,5 +1,5 @@
 import { API_URL } from "./config";
-import { auth } from "../stores/auth";
+import { auth } from "$lib/stores/auth";
 import { goto } from "$app/navigation";
 import { browser } from "$app/environment";
 

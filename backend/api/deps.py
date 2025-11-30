@@ -37,3 +37,17 @@ async def get_current_admin(current_user: User = Depends(get_current_user)):
             detail="The user does not have enough privileges"
         )
     return current_user
+
+
+async def get_current_user_from_token(token: str, db: AsyncSession) -> User | None:
+    """Get user from JWT token for WebSocket authentication"""
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        if username is None:
+            return None
+    except JWTError:
+        return None
+    
+    result = await db.execute(select(User).where(User.username == username))
+    return result.scalar_one_or_none()
