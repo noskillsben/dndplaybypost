@@ -1,0 +1,19 @@
+# Redis Configuration Template
+# This file is processed by docker-compose to inject environment variables
+
+# Enable append-only file persistence
+appendonly yes
+
+# Set password from environment variable
+# The password will be properly quoted to handle special characters
+requirepass "${REDIS_PASSWORD}"
+
+# Bind to all interfaces (Docker networking)
+bind 0.0.0.0
+
+# Protected mode (disabled for Docker networking)
+protected-mode no
+
+# Persistence settings
+appendfilename "appendonly.aof"
+appendfsync everysec
