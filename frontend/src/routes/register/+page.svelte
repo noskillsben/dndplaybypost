@@ -6,11 +6,18 @@
   let username = "";
   let email = "";
   let password = "";
+  let confirmPassword = "";
   let error = "";
   let message = "";
 
   async function handleRegister() {
     error = "";
+
+    // Validate passwords match
+    if (password !== confirmPassword) {
+      error = "Passwords do not match";
+      return;
+    }
 
     try {
       const res = await fetch(`${API_URL}/auth/register`, {
@@ -75,6 +82,17 @@
         id="password"
         type="password"
         bind:value={password}
+        class="w-full bg-gray-700 text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+        required
+      />
+    </div>
+
+    <div>
+      <label for="confirmPassword" class="block text-gray-400 mb-1">Retype Password</label>
+      <input
+        id="confirmPassword"
+        type="password"
+        bind:value={confirmPassword}
         class="w-full bg-gray-700 text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
         required
       />
