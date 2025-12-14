@@ -31,6 +31,7 @@ router = APIRouter(prefix="/v1/compendium", tags=["compendium"])
 @router.get("/items", response_model=CompendiumItemList)
 async def list_compendium_items(
     type: Optional[str] = Query(None, description="Filter by type"),
+    system: Optional[str] = Query(None, description="Filter by game system"),
     query: Optional[str] = Query(None, description="Search query"),
     tags: Optional[List[str]] = Query(None, description="Filter by tags"),
     is_official: Optional[bool] = Query(None, description="Filter official/homebrew"),
@@ -48,6 +49,7 @@ async def list_compendium_items(
     
     search_params = CompendiumSearchParams(
         type=type,
+        system=system,
         query=query,
         tags=tags,
         is_official=is_official,

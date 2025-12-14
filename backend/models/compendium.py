@@ -15,6 +15,7 @@ class CompendiumItem(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     type = Column(String(50), nullable=False, index=True)  # 'race', 'class', 'spell', 'item', 'feature', etc.
     name = Column(String(255), nullable=False, index=True)
+    system = Column(String(100), nullable=False, default="D&D 5.2 (2024)", index=True)  # Game system (e.g., "D&D 5e", "D&D 5.2")
     data = Column(JSONB, nullable=False)  # Type-specific structure
     schema_version = Column(Integer, nullable=False, default=1)  # Version of data structure
     version = Column(DateTime(timezone=True), nullable=False, default=func.now(), index=True)
@@ -30,6 +31,7 @@ class CompendiumItem(Base):
     # Indexes for performance
     __table_args__ = (
         Index('idx_compendium_type', 'type'),
+        Index('idx_compendium_system', 'system'),
         Index('idx_compendium_version', 'version'),
         Index('idx_compendium_tags', 'tags', postgresql_using='gin'),
         Index('idx_compendium_data', 'data', postgresql_using='gin'),

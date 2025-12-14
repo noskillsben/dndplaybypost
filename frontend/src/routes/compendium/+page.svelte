@@ -6,12 +6,14 @@
     } from "$lib/api/compendium";
     import CompendiumCard from "$lib/components/CompendiumCard.svelte";
     import SearchBar from "$lib/components/SearchBar.svelte";
+    import SystemSelector from "$lib/components/SystemSelector.svelte";
 
     let stats = null;
     let items = [];
     let loading = true;
     let error = null;
     let selectedType = "all";
+    let selectedSystem = "D&D 5.2 (2024)";
     let searchQuery = "";
     let currentPage = 1;
     let totalItems = 0;
@@ -54,6 +56,10 @@
                 params.type = selectedType;
             }
 
+            if (selectedSystem) {
+                params.system = selectedSystem;
+            }
+
             if (searchQuery) {
                 params.query = searchQuery;
             }
@@ -72,6 +78,12 @@
 
     function handleTypeChange(type) {
         selectedType = type;
+        currentPage = 1;
+        loadItems();
+    }
+
+    function handleSystemChange(event) {
+        selectedSystem = event.detail;
         currentPage = 1;
         loadItems();
     }
@@ -157,6 +169,11 @@
             </div>
         </div>
     {/if}
+
+    <!-- System Selector -->
+    <div class="mb-6">
+        <SystemSelector bind:selectedSystem on:change={handleSystemChange} />
+    </div>
 
     <!-- Search and Filters -->
     <div class="mb-6">

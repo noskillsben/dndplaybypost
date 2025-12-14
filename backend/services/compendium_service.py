@@ -116,6 +116,9 @@ class CompendiumService:
         if params.type:
             filters.append(CompendiumItem.type == params.type)
         
+        if params.system:
+            filters.append(CompendiumItem.system == params.system)
+        
         if params.is_official is not None:
             filters.append(CompendiumItem.is_official == params.is_official)
         
@@ -163,14 +166,20 @@ class CompendiumService:
     async def get_items_by_type(
         self,
         item_type: str,
-        is_active: bool = True
+        is_active: bool = True,
+        system: Optional[str] = None
     ) -> List[CompendiumItem]:
         """Get all items of a specific type"""
+        filters = [
+            CompendiumItem.type == item_type,
+            CompendiumItem.is_active == is_active
+        ]
+        
+        if system:
+            filters.append(CompendiumItem.system == system)
+        
         stmt = select(CompendiumItem).where(
-            and_(
-                CompendiumItem.type == item_type,
-                CompendiumItem.is_active == is_active
-            )
+            and_(*filters)
         ).order_by(CompendiumItem.name)
         
         result = await self.db.execute(stmt)
@@ -287,6 +296,15 @@ class CompendiumService:
         type_result = await self.db.execute(type_counts_stmt)
         type_counts = {row[0]: row[1] for row in type_result}
         
+        # Count by system
+        system_counts_stmt = select(
+            CompendiumItem.system,
+            func.count(CompendiumItem.id)
+        ).group_by(CompendiumItem.system)
+        
+        system_result = await self.db.execute(system_counts_stmt)
+        system_counts = {row[0]: row[1] for row in system_result}
+        
         # Count official vs homebrew
         official_stmt = select(func.count()).select_from(CompendiumItem).where(
             CompendiumItem.is_official == True
@@ -301,6 +319,7 @@ class CompendiumService:
         return {
             "total_items": sum(type_counts.values()),
             "by_type": type_counts,
+            "by_system": system_counts,
             "official_count": official_result.scalar(),
             "homebrew_count": homebrew_result.scalar()
         }

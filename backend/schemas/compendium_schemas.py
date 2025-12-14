@@ -12,6 +12,7 @@ class CompendiumItemBase(BaseModel):
     """Base schema for compendium items"""
     type: str = Field(..., description="Type of compendium item (race, class, spell, item, feature, background, etc.)")
     name: str = Field(..., max_length=255, description="Name of the item")
+    system: str = Field(default="D&D 5e", max_length=100, description="Game system (e.g., 'D&D 5e', 'D&D 5.2', 'Pathfinder 2e')")
     data: Dict[str, Any] = Field(..., description="Type-specific data structure")
     tags: List[str] = Field(default_factory=list, description="Tags for search and filtering")
     is_official: bool = Field(default=False, description="Whether this is official SRD content")
@@ -225,6 +226,7 @@ class CompendiumSearchParams(BaseModel):
     """Schema for search parameters"""
     query: Optional[str] = Field(None, description="Search query")
     type: Optional[str] = Field(None, description="Filter by type")
+    system: Optional[str] = Field(None, description="Filter by game system")
     tags: Optional[List[str]] = Field(None, description="Filter by tags")
     is_official: Optional[bool] = Field(None, description="Filter by official/homebrew")
     is_active: Optional[bool] = Field(True, description="Filter by active status")

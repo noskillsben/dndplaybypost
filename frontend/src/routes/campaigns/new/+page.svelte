@@ -1,9 +1,11 @@
 <script>
     import { api } from "$lib/api";
     import { goto } from "$app/navigation";
+    import SystemSelector from "$lib/components/SystemSelector.svelte";
 
     let name = "";
     let description = "";
+    let system = "D&D 5e";
     let settings = "{}";
     let error = "";
 
@@ -20,7 +22,10 @@
             const campaign = await api.post("/campaigns", {
                 name,
                 description,
-                settings: parsedSettings,
+                settings: {
+                    ...parsedSettings,
+                    system: system,
+                },
             });
 
             goto(`/campaigns/${campaign.id}`);
@@ -60,6 +65,10 @@
                 bind:value={description}
                 class="w-full bg-gray-700 text-white rounded p-2 focus:outline-none focus:ring-2 focus:ring-purple-500 h-32"
             />
+        </div>
+
+        <div>
+            <SystemSelector bind:selectedSystem={system} />
         </div>
 
         <div>

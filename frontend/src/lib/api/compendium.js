@@ -23,6 +23,7 @@ export async function searchCompendiumItems(params = {}) {
 
     if (params.query) queryParams.append('query', params.query);
     if (params.type) queryParams.append('type', params.type);
+    if (params.system) queryParams.append('system', params.system);
     if (params.is_official !== undefined) queryParams.append('is_official', params.is_official);
     if (params.page) queryParams.append('page', params.page);
     if (params.page_size) queryParams.append('page_size', params.page_size);
