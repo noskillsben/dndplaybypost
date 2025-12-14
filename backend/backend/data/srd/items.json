@@ -1,0 +1,39 @@
+[
+  {
+    "type": "item",
+    "name": "Longsword",
+    "data": {
+      "category": "weapon",
+      "subcategory": "martial_melee",
+      "rarity": "common",
+      "requires_attunement": false,
+      "description": "Proficiency with a longsword allows you to add your proficiency bonus to the attack roll for any attack you make with it.",
+      "cost": {
+        "gp": 15
+      },
+      "weight_lbs": 3,
+      "damage": {
+        "one_handed": "1d8",
+        "two_handed": "1d10",
+        "type": "slashing"
+      },
+      "properties": [
+        "versatile"
+      ],
+      "tags": [
+        "weapon",
+        "martial",
+        "melee",
+        "slashing",
+        "versatile"
+      ]
+    },
+    "tags": [
+      "item",
+      "weapon",
+      "martial",
+      "melee"
+    ],
+    "is_official": true
+  }
+]

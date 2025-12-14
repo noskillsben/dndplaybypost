@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, func
+from sqlalchemy import Column, String, Text, DateTime, Integer, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 import uuid
@@ -12,6 +12,7 @@ class Campaign(Base):
     name = Column(String(255), nullable=False)
     description = Column(Text)
     settings = Column(JSONB, default={})  # Flexible settings (game rules, house rules, etc.)
+    schema_version = Column(Integer, nullable=False, default=1)  # Version of settings structure
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

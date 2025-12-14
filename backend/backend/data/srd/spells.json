@@ -1,0 +1,69 @@
+[
+  {
+    "type": "spell",
+    "name": "Fireball",
+    "data": {
+      "level": 3,
+      "school": "evocation",
+      "casting_time": {
+        "type": "action",
+        "count": 1
+      },
+      "range": {
+        "type": "ranged",
+        "distance": 150,
+        "unit": "feet"
+      },
+      "components": {
+        "verbal": true,
+        "somatic": true,
+        "material": {
+          "required": true,
+          "description": "a tiny ball of bat guano and sulfur",
+          "consumed": false,
+          "cost_gp": 0
+        }
+      },
+      "duration": {
+        "type": "instantaneous"
+      },
+      "description": "A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame.",
+      "area_of_effect": {
+        "type": "sphere",
+        "radius": 20,
+        "unit": "feet"
+      },
+      "saving_throw": {
+        "ability": "dexterity",
+        "success_effect": "half_damage"
+      },
+      "damage": {
+        "base": "8d6",
+        "type": "fire",
+        "scaling": {
+          "slot_level": {
+            "additional_per_level": "1d6"
+          }
+        }
+      },
+      "tags": [
+        "damage",
+        "area",
+        "fire"
+      ],
+      "classes": [
+        "sorcerer",
+        "wizard"
+      ],
+      "ritual": false,
+      "concentration": false
+    },
+    "tags": [
+      "spell",
+      "evocation",
+      "fire",
+      "damage"
+    ],
+    "is_official": true
+  }
+]

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey, Boolean, func
+from sqlalchemy import Column, String, Text, DateTime, Integer, ForeignKey, Boolean, func
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 import uuid
@@ -15,6 +15,7 @@ class Message(Base):
     content = Column(Text, nullable=False)
     is_ic = Column(Boolean, default=True)  # In-character vs out-of-character
     extra_data = Column(JSONB, default={})  # Dice rolls, attachments, etc.
+    schema_version = Column(Integer, nullable=False, default=1)  # Version of extra_data structure
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     

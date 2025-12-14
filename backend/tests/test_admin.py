@@ -42,6 +42,8 @@ async def test_get_stats_as_admin(client: AsyncClient, admin_token):
     data = response.json()
     assert "user_count" in data
     assert data["user_count"] >= 1
+    assert "campaign_count" in data
+    assert data["campaign_count"] >= 1
 
 
 @pytest.mark.asyncio

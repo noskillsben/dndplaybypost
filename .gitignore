@@ -211,3 +211,6 @@ celerybeat.pid
 # Temporary files
 temp/
 tmp/
+
+#pdf example and context files
+*.pdf

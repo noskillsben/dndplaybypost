@@ -18,3 +18,4 @@ class User(Base):
     created_campaigns = relationship("Campaign", back_populates="creator")
     campaign_memberships = relationship("CampaignMember", back_populates="user")
     characters = relationship("Character", back_populates="player")
+    compendium_items = relationship("CompendiumItem", back_populates="creator")

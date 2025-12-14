@@ -36,11 +36,13 @@
       {#if $auth.isAuthenticated}
         <a href="/campaigns" class="hover:text-white">Campaigns</a>
         <a href="/characters" class="hover:text-white">Characters</a>
+        <a href="/compendium" class="hover:text-white">Compendium</a>
         {#if $auth.isAdmin}
           <a href="/admin" class="hover:text-white">Admin Dashboard</a>
         {/if}
         <button on:click={logout} class="hover:text-white">Logout</button>
       {:else}
+        <a href="/compendium" class="hover:text-white">Compendium</a>
         <a href="/login" class="hover:text-white">Login</a>
         <a href="/register" class="hover:text-white">Register</a>
       {/if}
