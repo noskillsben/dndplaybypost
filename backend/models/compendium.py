@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Text, DateTime, Boolean, Integer, ForeignKey, func, Index
+from sqlalchemy import Column, String, Text, DateTime, Boolean, Integer, ForeignKey, func, Index, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
 from sqlalchemy.orm import relationship
 import uuid
@@ -35,6 +35,7 @@ class CompendiumItem(Base):
         Index('idx_compendium_version', 'version'),
         Index('idx_compendium_tags', 'tags', postgresql_using='gin'),
         Index('idx_compendium_data', 'data', postgresql_using='gin'),
+        UniqueConstraint('type', 'name', 'system', name='uq_compendium_type_name_system'),
     )
 
 
