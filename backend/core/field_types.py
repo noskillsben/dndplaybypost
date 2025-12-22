@@ -98,6 +98,63 @@ class CompendiumLink(FieldType):
         }
 
 
+class ParentLink(FieldType):
+    """Reference to parent compendium entry for hierarchical structures"""
+    
+    def __init__(self, label: str = "Parent Entry"):
+        """
+        Args:
+            label: Label for the parent selector
+        """
+        self.label = label
+    
+    def to_pydantic_field(self) -> Tuple[type, Any]:
+        # Store as optional string GUID
+        return (Optional[str], Field(default=None))
+    
+    def to_form_field(self) -> dict:
+        return {
+            'type': 'parent_link',
+            'label': self.label
+        }
+
+
+class Markdown(FieldType):
+    """Rich text field that supports markdown formatting"""
+    
+    def __init__(self, max_len: int = 10000, placeholder: str = ""):
+        self.max_len = max_len
+        self.placeholder = placeholder
+    
+    def to_pydantic_field(self) -> Tuple[type, Any]:
+        return (str, Field(max_length=self.max_len))
+    
+    def to_form_field(self) -> dict:
+        return {
+            'type': 'markdown',
+            'maxLength': self.max_len,
+            'placeholder': self.placeholder
+        }
+
+
+class EntryCategory(FieldType):
+    """Enum field for entry categorization (container/definition/item)"""
+    
+    def __init__(self):
+        self.options = ["container", "definition", "item"]
+    
+    def to_pydantic_field(self) -> Tuple[type, Any]:
+        from typing import Literal
+        return (Literal["container", "definition", "item"], Field(default="item"))
+    
+    def to_form_field(self) -> dict:
+        return {
+            'type': 'select',
+            'options': self.options,
+            'label': 'Entry Category'
+        }
+
+
 # Convenience factory functions
 def short_text(max_len: int = 100, placeholder: str = "") -> ShortText:
     return ShortText(max_len, placeholder)
@@ -110,3 +167,12 @@ def integer(min_val: int = None, max_val: int = None) -> Integer:
 
 def compendium_link(query: str, label: str = "Select...") -> CompendiumLink:
     return CompendiumLink(query, label)
+
+def parent_link(label: str = "Parent Entry") -> ParentLink:
+    return ParentLink(label)
+
+def markdown(max_len: int = 10000, placeholder: str = "") -> Markdown:
+    return Markdown(max_len, placeholder)
+
+def entry_category() -> EntryCategory:
+    return EntryCategory()

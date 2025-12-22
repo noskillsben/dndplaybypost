@@ -28,9 +28,11 @@
                     formData[field.name] = field.type === "number" ? null : "";
                 }
 
-                // If it's a compendium link, fetch options
+                // If it's a compendium link or parent link, fetch options
                 if (field.type === "compendium_link") {
                     fetchCompendiumOptions(field.name, field.query);
+                } else if (field.type === "parent_link") {
+                    fetchParentOptions(field.name);
                 }
             });
 
@@ -51,6 +53,21 @@
             compendiumOptions[fieldName] = data.entries;
         } catch (e) {
             console.error(`Failed to fetch options for ${fieldName}:`, e);
+        }
+    }
+
+    async function fetchParentOptions(fieldName) {
+        try {
+            // Fetch all entries of the same type for parent selection
+            const url = `${API_URL}/api/compendium/?system=${encodeURIComponent(system)}&entry_type=${encodeURIComponent(entryType)}`;
+            const response = await fetch(url);
+            const data = await response.json();
+            compendiumOptions[fieldName] = data.entries;
+        } catch (e) {
+            console.error(
+                `Failed to fetch parent options for ${fieldName}:`,
+                e,
+            );
         }
     }
 
@@ -157,6 +174,55 @@
                             {/if}
                         </select>
                     </div>
+                {:else if field.type === "parent_link"}
+                    <div class="relative">
+                        <select
+                            id={field.name}
+                            bind:value={formData[field.name]}
+                            required={field.required}
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            <option value="">None (Top Level)</option>
+                            {#if compendiumOptions[field.name]}
+                                {#each compendiumOptions[field.name] as option}
+                                    <option value={option.guid}
+                                        >{option.name}</option
+                                    >
+                                {/each}
+                            {/if}
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">
+                            Select a parent entry to create a hierarchical
+                            structure
+                        </p>
+                    </div>
+                {:else if field.type === "markdown"}
+                    <textarea
+                        id={field.name}
+                        bind:value={formData[field.name]}
+                        maxlength={field.maxLength}
+                        placeholder={field.placeholder ||
+                            "Supports **markdown** formatting"}
+                        required={field.required}
+                        rows="6"
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                    />
+                    <p class="text-xs text-gray-500 mt-1">
+                        Supports markdown: **bold**, *italic*, # headings, etc.
+                    </p>
+                {:else if field.type === "select"}
+                    <select
+                        id={field.name}
+                        bind:value={formData[field.name]}
+                        required={field.required}
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                        {#if field.options}
+                            {#each field.options as option}
+                                <option value={option}>{option}</option>
+                            {/each}
+                        {/if}
+                    </select>
                 {/if}
 
                 {#if field.base_field}

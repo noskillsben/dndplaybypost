@@ -11,6 +11,11 @@
     let search = "";
     let loading = false;
 
+    // Form metadata fields
+    let guidSuffix = "";
+    let isHomebrew = true;
+    let sourceField = "User Homebrew";
+
     const API_URL = "http://localhost:8000";
 
     onMount(async () => {
@@ -67,6 +72,15 @@
 
     async function handleCreateSubmit(formData) {
         try {
+            // Extract parent_guid if present
+            const parent_guid = formData.parent_guid || null;
+
+            // Build custom GUID if suffix provided, otherwise let backend generate
+            let customGuid = null;
+            if (guidSuffix.trim()) {
+                customGuid = `${selectedSystem}-${selectedType}-${guidSuffix.trim()}`;
+            }
+
             const res = await fetch(`${API_URL}/api/compendium/`, {
                 method: "POST",
                 headers: {
@@ -77,13 +91,19 @@
                     entry_type: selectedType,
                     name: formData.name,
                     data: formData,
-                    source: "User Homebrew",
-                    homebrew: true,
+                    parent_guid: parent_guid,
+                    source: sourceField,
+                    homebrew: isHomebrew,
+                    ...(customGuid && { guid: customGuid }), // Only include if provided
                 }),
             });
 
             if (res.ok) {
                 showCreateForm = false;
+                // Reset form metadata
+                guidSuffix = "";
+                isHomebrew = true;
+                sourceField = "User Homebrew";
                 await fetchEntries();
             } else {
                 const err = await res.json();
@@ -96,6 +116,12 @@
 
     function toggleCreateForm() {
         showCreateForm = !showCreateForm;
+        if (showCreateForm) {
+            // Reset form metadata when opening
+            guidSuffix = "";
+            isHomebrew = true;
+            sourceField = "User Homebrew";
+        }
     }
 </script>
 
@@ -216,11 +242,86 @@
                     </p>
                 </div>
             {:else if showCreateForm}
-                <DynamicForm
-                    system={selectedSystem}
-                    entryType={selectedType}
-                    onSubmit={handleCreateSubmit}
-                />
+                <div class="space-y-6">
+                    <!-- Entry Metadata Section -->
+                    <div
+                        class="bg-white shadow-md rounded px-8 pt-6 pb-4 border border-gray-200"
+                    >
+                        <h3
+                            class="text-lg font-bold text-gray-800 mb-4 border-b pb-2"
+                        >
+                            Entry Metadata
+                        </h3>
+
+                        <!-- GUID Suffix -->
+                        <div class="mb-4">
+                            <label
+                                for="guidSuffix"
+                                class="block text-gray-700 text-sm font-bold mb-2"
+                            >
+                                GUID Suffix
+                            </label>
+                            <div class="flex items-center gap-2">
+                                <span
+                                    class="text-gray-500 text-sm font-mono bg-gray-100 px-3 py-2 rounded border"
+                                >
+                                    {selectedSystem}-{selectedType}-
+                                </span>
+                                <input
+                                    type="text"
+                                    id="guidSuffix"
+                                    bind:value={guidSuffix}
+                                    placeholder="equipment (leave empty for auto-generate)"
+                                    class="flex-1 shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">
+                                Optional: Specify custom GUID suffix. If empty,
+                                will auto-generate from name.
+                            </p>
+                        </div>
+
+                        <!-- Source -->
+                        <div class="mb-4">
+                            <label
+                                for="source"
+                                class="block text-gray-700 text-sm font-bold mb-2"
+                            >
+                                Source
+                            </label>
+                            <input
+                                type="text"
+                                id="source"
+                                bind:value={sourceField}
+                                placeholder="PHB, DMG, User Homebrew, etc."
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+
+                        <!-- Homebrew Checkbox -->
+                        <div class="mb-2">
+                            <label class="flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    bind:checked={isHomebrew}
+                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <span
+                                    class="ml-2 text-sm font-medium text-gray-700"
+                                >
+                                    Mark as Homebrew
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Schema Fields -->
+                    <DynamicForm
+                        system={selectedSystem}
+                        entryType={selectedType}
+                        onSubmit={handleCreateSubmit}
+                    />
+                </div>
             {:else}
                 <div class="space-y-4">
                     <!-- Search UI -->
@@ -250,29 +351,54 @@
                                     <div
                                         class="flex justify-between items-start"
                                     >
-                                        <div>
-                                            <h4
-                                                class="text-lg font-bold text-gray-900"
+                                        <div class="flex-1">
+                                            <div
+                                                class="flex items-center gap-2"
                                             >
-                                                {entry.name}
-                                            </h4>
+                                                {#if entry.parent_guid}
+                                                    <span class="text-gray-400"
+                                                        >└─</span
+                                                    >
+                                                {/if}
+                                                <h4
+                                                    class="text-lg font-bold text-gray-900"
+                                                >
+                                                    {entry.name}
+                                                </h4>
+                                            </div>
                                             <p
                                                 class="text-xs font-mono text-gray-400"
                                             >
                                                 {entry.guid}
                                             </p>
+                                            {#if entry.parent_guid}
+                                                <p
+                                                    class="text-xs text-blue-600 mt-1"
+                                                >
+                                                    Parent: {entry.parent_guid}
+                                                </p>
+                                            {/if}
                                         </div>
-                                        {#if entry.homebrew}
-                                            <span
-                                                class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-bold"
-                                                >Homebrew</span
-                                            >
-                                        {:else}
-                                            <span
-                                                class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold"
-                                                >Official</span
-                                            >
-                                        {/if}
+                                        <div class="flex gap-2">
+                                            {#if entry.data.entry_category}
+                                                <span
+                                                    class="bg-indigo-100 text-indigo-700 text-xs px-2 py-1 rounded-full font-bold capitalize"
+                                                    >{entry.data
+                                                        .entry_category}</span
+                                                >
+                                            {/if}
+                                            {#if entry.homebrew}
+                                                <span
+                                                    class="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-bold"
+                                                    >Homebrew</span
+                                                >
+                                            {:else}
+                                                <span
+                                                    class="bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full font-bold"
+                                                    >Official</span
+                                                >
+                                            {/if}
+                                        </div>
                                     </div>
                                     <div
                                         class="mt-3 text-sm text-gray-600 line-clamp-2"

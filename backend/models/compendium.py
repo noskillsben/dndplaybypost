@@ -1,4 +1,5 @@
-from sqlalchemy import Column, String, Text, JSON, Boolean, DateTime, Index
+from sqlalchemy import Column, String, Text, JSON, Boolean, DateTime, Index, ForeignKey
+from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
 
@@ -21,6 +22,9 @@ class CompendiumEntry(Base):
     # JSONB data matching the schema for this system/entry_type
     data = Column(JSON, nullable=False)
     
+    # Hierarchical relationship - parent entry GUID
+    parent_guid = Column(String(200), ForeignKey('compendium.guid'), nullable=True, index=True)
+    
     # Metadata
     homebrew = Column(Boolean, default=False, index=True)
     source = Column(String(100))  # "PHB", "DMG", etc.
@@ -28,6 +32,9 @@ class CompendiumEntry(Base):
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships for hierarchy navigation
+    parent = relationship("CompendiumEntry", remote_side=[guid], backref="children")
 
     # Composite indexes for common query patterns
     __table_args__ = (

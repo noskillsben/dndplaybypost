@@ -18,5 +18,9 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Start command
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Copy and set permissions for startup script
+COPY start.sh .
+RUN chmod +x start.sh
+
+# Start command - runs migrations then starts server
+CMD ["./start.sh"]

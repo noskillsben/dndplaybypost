@@ -74,3 +74,20 @@ class ObjectRegistration:
             'fields': form_fields
         }
         return self._form_cache
+    
+    # Convenience methods for hierarchical patterns
+    def add_parent_field(self, label: str = "Parent Entry"):
+        """Add a parent link field for hierarchical structures"""
+        from core.field_types import parent_link
+        return self.add_field("parent_guid", parent_link(label), base_field=True, required=False)
+    
+    def add_category_field(self):
+        """Add an entry category field (container/definition/item)"""
+        from core.field_types import entry_category
+        return self.add_field("entry_category", entry_category(), base_field=True, required=False)
+    
+    def add_markdown_field(self, name: str = "description", max_len: int = 10000, 
+                          placeholder: str = "", required: bool = False):
+        """Add a markdown field for rich text descriptions"""
+        from core.field_types import markdown
+        return self.add_field(name, markdown(max_len, placeholder), base_field=True, required=required)
