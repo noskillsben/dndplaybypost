@@ -1,0 +1,87 @@
+version: '3.8'
+
+networks:
+  dnd-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: dnd-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./data/backups:/backups
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    networks:
+      - dnd-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dnd-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@dnd-postgres:5432/${POSTGRES_DB}
+      DEBUG: ${DEBUG}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+    volumes:
+      - ./backend:/app
+      - ./data/srd:/app/data/srd
+    ports:
+      - "${BACKEND_PORT}:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - dnd-network
+
+  # SvelteKit Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: dnd-frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PUBLIC_API_URL: ${PUBLIC_API_URL}
+      VITE_API_URL: ${VITE_API_URL}
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/build
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    depends_on:
+      - backend
+    networks:
+      - dnd-network
+
+  # Adminer for database management
+  adminer:
+    image: adminer:latest
+    container_name: dnd-adminer
+    restart: unless-stopped
+    ports:
+      - "${ADMINER_PORT}:8080"
+    depends_on:
+      - postgres
+    networks:
+      - dnd-network

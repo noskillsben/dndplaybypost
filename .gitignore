@@ -1,0 +1,64 @@
+# Environment
+.env
+.env.*
+!.env.template
+
+# Data
+data/
+pgdata/
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Backend (Python)
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/.venv/
+backend/venv/
+backend/ENV/
+backend/env/
+backend/build/
+backend/develop-eggs/
+backend/dist/
+backend/downloads/
+backend/eggs/
+backend/.eggs/
+backend/lib/
+backend/lib64/
+backend/parts/
+backend/sdist/
+backend/var/
+backend/wheels/
+backend/*.egg-info/
+backend/.installed.cfg
+backend/*.egg
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/.mypy_cache/
+
+# Frontend (Node.js / SvelteKit)
+frontend/node_modules/
+frontend/build/
+frontend/.svelte-kit/
+frontend/.cache/
+frontend/package-lock.json
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+
+# Docker
+.docker-clean
