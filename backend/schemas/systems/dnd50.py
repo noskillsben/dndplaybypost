@@ -23,7 +23,7 @@ item.add_markdown_field("description", required=False)
 item.add_field("weight", ft.integer(min_val=0), base_field=True)
 item.add_field("damage_dice", ft.short_text(20), placeholder="1d8")
 item.add_field("damage_type", ft.compendium_link(
-    query="d&d5.0-basic-rule-*",
+    query="parent:d&d5.0-basic-rule-damage-types",
     label="Damage Type"
 ))
 # Link to weapon category (e.g., "Simple Melee Weapon")

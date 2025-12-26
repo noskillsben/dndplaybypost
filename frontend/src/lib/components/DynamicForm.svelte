@@ -17,7 +17,9 @@
     onMount(async () => {
         try {
             const response = await fetch(
-                `${API_URL}/api/schemas/${encodeURIComponent(system)}/${encodeURIComponent(entryType)}`,
+                `${API_URL}/api/schemas/${encodeURIComponent(
+                    system
+                )}/${encodeURIComponent(entryType)}`
             );
             if (!response.ok) throw new Error("Failed to load schema");
             formSchema = await response.json();
@@ -45,9 +47,22 @@
 
     async function fetchCompendiumOptions(fieldName, query) {
         try {
-            // Parse query like "d&d5.0-basic-damage-type-*"
-            const [system, type] = query.split("-").slice(0, 2);
-            const url = `${API_URL}/api/compendium/?system=${encodeURIComponent(system)}&entry_type=${encodeURIComponent(type)}`;
+            let url;
+
+            if (query.startsWith("parent:")) {
+                // Query by parent GUID: "parent:d&d5.0-basic-rule-damage-types"
+                const parentGuid = query.substring(7); // Remove "parent:" prefix
+                url = `${API_URL}/api/compendium/?parent_guid=${encodeURIComponent(
+                    parentGuid
+                )}`;
+            } else {
+                // Query by GUID prefix: "d&d5.0-basic-rule-damage-types-*"
+                const guidPrefix = query.replace(/\*$/, ""); // Remove trailing '*'
+                url = `${API_URL}/api/compendium/?guid_prefix=${encodeURIComponent(
+                    guidPrefix
+                )}`;
+            }
+
             const response = await fetch(url);
             const data = await response.json();
             compendiumOptions[fieldName] = data.entries;
@@ -59,14 +74,16 @@
     async function fetchParentOptions(fieldName) {
         try {
             // Fetch all entries of the same type for parent selection
-            const url = `${API_URL}/api/compendium/?system=${encodeURIComponent(system)}&entry_type=${encodeURIComponent(entryType)}`;
+            const url = `${API_URL}/api/compendium/?system=${encodeURIComponent(
+                system
+            )}&entry_type=${encodeURIComponent(entryType)}`;
             const response = await fetch(url);
             const data = await response.json();
             compendiumOptions[fieldName] = data.entries;
         } catch (e) {
             console.error(
                 `Failed to fetch parent options for ${fieldName}:`,
-                e,
+                e
             );
         }
     }
@@ -90,7 +107,7 @@
     <div class="flex items-center justify-center p-8">
         <div
             class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"
-        ></div>
+        />
         <span class="ml-2">Loading form schema...</span>
     </div>
 {:else if error}
