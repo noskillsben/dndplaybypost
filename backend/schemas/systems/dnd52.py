@@ -1,6 +1,14 @@
 from core.schema_builder import ObjectRegistration
 from core import field_types as ft
 
+# System metadata
+SYSTEM_INFO = {
+    "guid": "d&d5.2",
+    "name": "Dungeons & Dragons 5e (2024)",
+    "description": "The 2024 revised edition of D&D 5e with updated rules and weapon masteries.",
+    "link": "https://www.dndbeyond.com/"
+}
+
 # In 5.2 (2024), we have Weapon Masteries.
 # Let's show how the schema can differ.
 

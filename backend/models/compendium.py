@@ -27,7 +27,8 @@ class CompendiumEntry(Base):
     
     # Metadata
     homebrew = Column(Boolean, default=False, index=True)
-    source = Column(String(100))  # "PHB", "DMG", etc.
+    # Source info as JSON: {"name": "PHB", "page": 123, "link": "https://..."}
+    source = Column(JSON, nullable=True)
     
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)

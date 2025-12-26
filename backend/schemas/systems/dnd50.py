@@ -1,6 +1,14 @@
 from core.schema_builder import ObjectRegistration
 from core import field_types as ft
 
+# System metadata
+SYSTEM_INFO = {
+    "guid": "d&d5.0",
+    "name": "Dungeons & Dragons 5e (2014)",
+    "description": "The 2014 release of the fifth edition of Dungeons & Dragons.",
+    "link": "https://www.dndbeyond.com/"
+}
+
 # Basic Rule Schema - for hierarchical rule definitions
 basic_rule = ObjectRegistration(system="d&d5.0")
 basic_rule.add_field("name", ft.short_text(100), base_field=True, required=True)
@@ -60,7 +68,7 @@ SEED_ENTRIES = [
             "description": "# Damage Types\n\nThe various types of damage that can be dealt in D&D 5e.",
             "entry_category": "container"
         },
-        "source": "PHB"
+        "source": {"name": "PHB"}
     },
     # Physical Damage Types
     {
@@ -74,7 +82,7 @@ SEED_ENTRIES = [
             "entry_category": "definition",
             "parent_guid": "d&d5.0-basic-rule-damage-types"
         },
-        "source": "PHB"
+        "source": {"name": "PHB"}
     },
     {
         "guid": "d&d5.0-basic-rule-bludgeoning",
@@ -87,7 +95,7 @@ SEED_ENTRIES = [
             "entry_category": "definition",
             "parent_guid": "d&d5.0-basic-rule-damage-types"
         },
-        "source": "PHB"
+        "source": {"name": "PHB"}
     },
     {
         "guid": "d&d5.0-basic-rule-piercing",
@@ -100,7 +108,7 @@ SEED_ENTRIES = [
             "entry_category": "definition",
             "parent_guid": "d&d5.0-basic-rule-damage-types"
         },
-        "source": "PHB"
+        "source": {"name": "PHB"}
     },
     # Equipment Hierarchy
     {
@@ -112,7 +120,7 @@ SEED_ENTRIES = [
             "description": "# Equipment\n\nAdventurers rely on various types of equipment to survive and thrive.",
             "entry_category": "container"
         },
-        "source": "PHB"
+        "source": {"name": "PHB"}
     },
     {
         "guid": "d&d5.0-basic-rule-weapons",
@@ -125,7 +133,7 @@ SEED_ENTRIES = [
             "entry_category": "container",
             "parent_guid": "d&d5.0-basic-rule-equipment"
         },
-        "source": "PHB"
+        "source": {"name": "PHB"}
     },
     {
         "guid": "d&d5.0-basic-rule-weapon-masteries",
@@ -138,7 +146,7 @@ SEED_ENTRIES = [
             "entry_category": "container",
             "parent_guid": "d&d5.0-basic-rule-weapons"
         },
-        "source": "PHB"
+        "source": {"name": "PHB"}
     },
     {
         "guid": "d&d5.0-basic-rule-simple-melee-weapon",
@@ -151,7 +159,7 @@ SEED_ENTRIES = [
             "entry_category": "definition",
             "parent_guid": "d&d5.0-basic-rule-weapon-masteries"
         },
-        "source": "PHB"
+        "source": {"name": "PHB"}
     },
     {
         "guid": "d&d5.0-basic-rule-simple-ranged-weapon",
@@ -164,7 +172,7 @@ SEED_ENTRIES = [
             "entry_category": "definition",
             "parent_guid": "d&d5.0-basic-rule-weapon-masteries"
         },
-        "source": "PHB"
+        "source": {"name": "PHB"}
     },
     {
         "guid": "d&d5.0-basic-rule-martial-melee-weapon",
@@ -177,7 +185,7 @@ SEED_ENTRIES = [
             "entry_category": "definition",
             "parent_guid": "d&d5.0-basic-rule-weapon-masteries"
         },
-        "source": "PHB"
+        "source": {"name": "PHB"}
     },
     {
         "guid": "d&d5.0-basic-rule-martial-ranged-weapon",
@@ -190,7 +198,7 @@ SEED_ENTRIES = [
             "entry_category": "definition",
             "parent_guid": "d&d5.0-basic-rule-weapon-masteries"
         },
-        "source": "PHB"
+        "source": {"name": "PHB"}
     },
 ]
 

@@ -19,7 +19,7 @@ class CompendiumCreate(BaseModel):
     parent_guid: Optional[str] = None  # For hierarchical entries
     guid: Optional[str] = None  # Optional custom GUID (will auto-generate if not provided)
     homebrew: bool = False
-    source: str = "Unknown"
+    source: Optional[Dict[str, Any]] = None  # e.g., {"name": "PHB", "page": 123, "link": "https://..."}
 
 @router.get("/")
 async def list_entries(
