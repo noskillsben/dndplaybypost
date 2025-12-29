@@ -1,3 +1,7 @@
+# Dungeons & Dragons 5e (2014) setup file.
+# This file is used to define the systems, schemas and adds empty data for the system.
+# Json import/export system will be added to import rules, modules, and adventures using the data layed out in this file.
+
 from core.schema_builder import ObjectRegistration
 from core import field_types as ft
 
@@ -10,11 +14,11 @@ SYSTEM_INFO = {
 }
 
 # Basic Rule Schema - for hierarchical rule definitions
-basic_rule = ObjectRegistration(system="d&d5.0")
-basic_rule.add_field("name", ft.short_text(100), base_field=True, required=True)
-basic_rule.add_markdown_field("description", max_len=10000, required=False)
-basic_rule.add_parent_field()
-basic_rule.add_category_field()
+rule = ObjectRegistration(system="d&d5.0")
+rule.add_field("name", ft.short_text(100), base_field=True, required=True)
+rule.add_markdown_field("description", max_len=10000, required=False)
+rule.add_parent_field()
+rule.add_category_field()
 
 # Item Schema - updated to use new field types and demonstrate hierarchy
 item = ObjectRegistration(system="d&d5.0")
@@ -23,12 +27,12 @@ item.add_markdown_field("description", required=False)
 item.add_field("weight", ft.integer(min_val=0), base_field=True)
 item.add_field("damage_dice", ft.short_text(20), placeholder="1d8")
 item.add_field("damage_type", ft.compendium_link(
-    query="parent:d&d5.0-basic-rule-damage-types",
+    query="parent:d&d5.0-rule-damage-types",
     label="Damage Type"
 ))
 # Link to weapon category (e.g., "Simple Melee Weapon")
 item.add_field("item_category", ft.compendium_link(
-    query="d&d5.0-basic-rule-*",
+    query="d&d5.0-rule-*",
     label="Item Category"
 ))
 # Link to mastery type if applicable
@@ -203,8 +207,60 @@ SEED_ENTRIES = [
 ]
 
 SCHEMAS = {
-    "basic-rule": basic_rule,
+    "basic-rule": rule,
     "item": item,
     "spell": spell,
     "class": character_class
+}
+
+# Logic Definitions for Baking Engine
+LOGIC_DEFINITIONS = {
+    # Base Stats (usually present in raw_data, but defined here for baked access)
+    "stats.strength.total": "stats.strength.base",
+    "stats.dexterity.total": "stats.dexterity.base",
+    
+    # Derived Modifiers
+    "stats.strength.mod": "(stats.strength.total - 10) // 2",
+    "stats.dexterity.mod": "(stats.dexterity.total - 10) // 2",
+    
+    # Skills
+    "skills.athletics.total": "stats.strength.mod + (proficiency_bonus if skills.athletics.prof else 0)",
+    "skills.acrobatics.total": "stats.dexterity.mod + (proficiency_bonus if skills.acrobatics.prof else 0)",
+    
+    # Combat
+    "combat.ac.total": "10 + stats.dexterity.mod", # Basic calculation, armor modifiers will override/add
+}
+
+# Layout Tree for Character Sheet UI
+LAYOUT_TREE = {
+    "type": "tabs",
+    "children": [
+        {
+            "label": "Main",
+            "type": "grid",
+            "columns": 3,
+            "children": [
+                {
+                    "type": "column",
+                    "label": "Attributes",
+                    "children": [
+                        {"type": "number", "label": "Strength", "bind": "stats.strength.total", "sublabel": "stats.strength.mod"},
+                        {"type": "number", "label": "Dexterity", "bind": "stats.dexterity.total", "sublabel": "stats.dexterity.mod"},
+                    ]
+                },
+                {
+                    "type": "column",
+                    "label": "Vitals",
+                    "children": [
+                        {"type": "number", "label": "Armor Class", "bind": "combat.ac.total"},
+                    ]
+                }
+            ]
+        },
+        {
+            "label": "Inventory",
+            "type": "list",
+            "bind": "inventory"
+        }
+    ]
 }

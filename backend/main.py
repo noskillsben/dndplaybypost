@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from api import schemas, compendium, systems
+from api.routes import actors
 
 app = FastAPI(title="D&D Platform API v2.0")
 
@@ -19,6 +20,7 @@ app.add_middleware(
 app.include_router(schemas.router)
 app.include_router(compendium.router)
 app.include_router(systems.router)
+app.include_router(actors.router)
 
 @app.get("/")
 async def root():

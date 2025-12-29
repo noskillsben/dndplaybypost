@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import JSONB
 
 
 # revision identifiers, used by Alembic.
@@ -32,7 +33,7 @@ def upgrade() -> None:
     
     # Convert source column from VARCHAR to JSON with data migration
     # Step 1: Add a temporary column
-    op.add_column('compendium', sa.Column('source_temp', sa.JSON(), nullable=True))
+    op.add_column('compendium', sa.Column('source_temp', JSONB, nullable=True))
     
     # Step 2: Migrate data from old source to new source_temp
     op.execute("""
