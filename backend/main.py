@@ -1,6 +1,9 @@
+# basic imports
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
+
+# api imports, core of the application
 from api import schemas, compendium, systems
 from api.routes import actors
 

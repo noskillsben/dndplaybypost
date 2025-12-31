@@ -7,8 +7,9 @@ class ObjectRegistration:
     Pydantic models (backend validation) and JSON schemas (frontend forms).
     """
     
-    def __init__(self, system: str = None):
+    def __init__(self, system: str = None, entry_type: str = None):
         self.system = system  # e.g., "d&d5.0", "d&d5.2"
+        self.entry_type = entry_type
         self.fields = {}  # field_name -> dict with field info
         self._model_cache = None
         self._form_cache = None
@@ -91,3 +92,68 @@ class ObjectRegistration:
         """Add a markdown field for rich text descriptions"""
         from core.field_types import markdown
         return self.add_field(name, markdown(max_len, placeholder), base_field=True, required=required)
+
+    def __call__(self, guid: str, source: Dict[str, Any] = None, **field_values) -> 'SeedEntry':
+        """
+        Create a validated seed entry instance.
+        
+        Args:
+            guid: Short GUID (local part only), e.g., "slashing"
+            source: Optional source info, e.g., {"name": "PHB", "page": 196}
+            **field_values: Field values matching this schema
+            
+        Returns:
+            SeedEntry with validated data and .guid property
+        """
+        if not self.system:
+            raise ValueError("System must be defined to create seed entries")
+        if not hasattr(self, 'entry_type') or not self.entry_type:
+             # Fallback if entry_type wasn't passed to init (though we updated dnd50 to pass it)
+             # This might happen if using old initialization pattern
+             raise ValueError("entry_type must be defined in ObjectRegistration to create seed entries")
+
+        # 1. Validate field_values against schema
+        Model = self.model()
+        try:
+            # Create model instance to validate
+            validated_instance = Model(**field_values)
+            validated_data = validated_instance.model_dump()
+        except Exception as e:
+            raise ValueError(f"Validation failed for seed entry '{guid}': {str(e)}")
+        
+        # 2. Extract specific known fields
+        name = field_values.get('name')
+        if not name:
+             raise ValueError(f"Field 'name' is required for seed entry '{guid}'")
+
+        parent_guid = field_values.get('parent_guid')
+
+        # 3. Return SeedEntry object
+        return SeedEntry(
+            system=self.system,
+            entry_type=self.entry_type,
+            short_guid=guid,
+            name=name,
+            data=validated_data,
+            parent_guid=parent_guid,
+            source=source
+        )
+
+from dataclasses import dataclass
+
+@dataclass
+class SeedEntry:
+    """Represents a validated seed entry ready for database insertion"""
+    system: str
+    entry_type: str
+    short_guid: str  # Just the local part, e.g., "slashing"
+    name: str
+    data: Dict[str, Any]
+    parent_guid: Optional[str] = None
+    source: Optional[Dict[str, Any]] = None
+    
+    @property
+    def guid(self) -> str:
+        """Full GUID: system-entry_type-short_guid"""
+        return f"{self.system}-{self.entry_type}-{self.short_guid}"
+

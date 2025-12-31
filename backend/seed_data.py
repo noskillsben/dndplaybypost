@@ -121,7 +121,26 @@ async def seed_system(session: AsyncSession, system_module):
     skipped_count = 0
     
     for entry_data in system_module.SEED_ENTRIES:
-        guid = entry_data['guid']
+        # TODO: Remove this after all seed data is updated to use SeedEntry objects
+        # Support both legacy dict and new SeedEntry object
+        if isinstance(entry_data, dict):
+            guid = entry_data['guid']
+            name = entry_data['name']
+            entry_type = entry_data.get('entry_type', 'rule')
+            data = entry_data['data']
+            parent_guid = entry_data.get('parent_guid')
+            source = entry_data.get('source')
+            # Extract system directly since legacy dicts might be dnd50-specific
+            entry_system = entry_data.get('system')
+        else:
+            # New SeedEntry object
+            guid = entry_data.guid
+            name = entry_data.name
+            entry_type = entry_data.entry_type
+            data = entry_data.data
+            parent_guid = entry_data.parent_guid
+            source = entry_data.source
+            entry_system = entry_data.system
         
         # Check if exists
         result = await session.execute(
@@ -131,23 +150,19 @@ async def seed_system(session: AsyncSession, system_module):
             skipped_count += 1
             continue  # Already exists, skip
         
-        # Extract system from entry data or use module's system
-        system = entry_data.get('system')
-        if not system and hasattr(system_module, 'SCHEMAS'):
-            # Get system from first schema
-            first_schema = next(iter(system_module.SCHEMAS.values()))
-            system = first_schema.system
+        # Determine strict system match
+        final_system = entry_system or system_name
         
         # Create entry
         entry = CompendiumEntry(
             guid=guid,
-            system=system or system_name,
-            entry_type=entry_data.get('entry_type', 'basic-rule'),
-            name=entry_data['name'],
-            data=entry_data['data'],
-            parent_guid=entry_data.get('parent_guid'),
+            system=final_system,
+            entry_type=entry_type,
+            name=name,
+            data=data,
+            parent_guid=parent_guid,
             homebrew=False,
-            source=entry_data.get('source')
+            source=source
         )
         session.add(entry)
         created_count += 1

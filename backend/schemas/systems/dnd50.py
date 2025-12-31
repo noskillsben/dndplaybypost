@@ -14,14 +14,14 @@ SYSTEM_INFO = {
 }
 
 # Basic Rule Schema - for hierarchical rule definitions
-rule = ObjectRegistration(system="d&d5.0")
+rule = ObjectRegistration(system="d&d5.0", entry_type="rule")
 rule.add_field("name", ft.short_text(100), base_field=True, required=True)
 rule.add_markdown_field("description", max_len=10000, required=False)
 rule.add_parent_field()
 rule.add_category_field()
 
 # Item Schema - updated to use new field types and demonstrate hierarchy
-item = ObjectRegistration(system="d&d5.0")
+item = ObjectRegistration(system="d&d5.0", entry_type="item")
 item.add_field("name", ft.short_text(100), base_field=True, required=True)
 item.add_markdown_field("description", required=False)
 item.add_field("weight", ft.integer(min_val=0), base_field=True)
@@ -37,12 +37,12 @@ item.add_field("item_category", ft.compendium_link(
 ))
 # Link to mastery type if applicable
 item.add_field("mastery_type", ft.compendium_link(
-    query="d&d5.0-basic-rule-*",
+    query="d&d5.0-rule-*",
     label="Mastery Type"
 ))
 
 # Spell Schema
-spell = ObjectRegistration(system="d&d5.0")
+spell = ObjectRegistration(system="d&d5.0", entry_type="spell")
 spell.add_field("name", ft.short_text(100), base_field=True, required=True)
 spell.add_markdown_field("description", required=False)
 spell.add_field("level", ft.integer(min_val=0, max_val=9), required=True)
@@ -54,160 +54,136 @@ spell.add_field("duration", ft.short_text(50))
 spell.add_field("concentration", ft.short_text(5), placeholder="Yes/No")
 
 # Class Schema
-character_class = ObjectRegistration(system="d&d5.0")
+character_class = ObjectRegistration(system="d&d5.0", entry_type="class")
 character_class.add_field("name", ft.short_text(50), base_field=True, required=True)
 character_class.add_markdown_field("description", required=False)
 character_class.add_field("hit_die", ft.short_text(5), placeholder="d8")
 character_class.add_field("primary_ability", ft.short_text(50), placeholder="Strength/Dexterity")
 
-# Seed data - foundational entries created on startup
+# Seed data - foundational entries created on startup using Pythonic API
+# ---------------------------------------------------------------------
+
+# 1. Damage Types
+# Note: Source is applied to all of these for brevity, could be per-item
+phb_source = {"name": "PHB"}
+
+damage_types = rule(
+    guid="damage-types",
+    name="Damage Types",
+    description="# Damage Types\n\nThe various types of damage that can be dealt in D&D 5e.",
+    entry_category="container",
+    source=phb_source
+)
+
+slashing = rule(
+    guid="slashing",
+    name="Slashing",
+    parent_guid=damage_types.guid,
+    description="Slashing damage is dealt by swords, axes, and claws.",
+    entry_category="definition",
+    source=phb_source
+)
+
+bludgeoning = rule(
+    guid="bludgeoning",
+    name="Bludgeoning",
+    parent_guid=damage_types.guid,
+    description="Bludgeoning damage is dealt by blunt force from hammers, clubs, and falling.",
+    entry_category="definition",
+    source=phb_source
+)
+
+piercing = rule(
+    guid="piercing",
+    name="Piercing",
+    parent_guid=damage_types.guid,
+    description="Piercing damage is dealt by arrows, spears, and fangs.",
+    entry_category="definition",
+    source=phb_source
+)
+
+# 2. Equipment Hierarchy
+equipment = rule(
+    guid="equipment",
+    name="Equipment",
+    description="# Equipment\n\nAdventurers rely on various types of equipment to survive and thrive.",
+    entry_category="container",
+    source=phb_source
+)
+
+weapons = rule(
+    guid="weapons",
+    name="Weapons",
+    parent_guid=equipment.guid,
+    description="## Weapons\n\nWeapons are categorized by their complexity and fighting style.",
+    entry_category="container",
+    source=phb_source
+)
+
+weapon_masteries = rule(
+    guid="weapon-masteries",
+    name="Weapon Masteries",
+    parent_guid=weapons.guid,
+    description="### Weapon Masteries\n\nWeapon proficiency categories.",
+    entry_category="container",
+    source=phb_source
+)
+
+simple_melee = rule(
+    guid="simple-melee-weapon",
+    name="Simple Melee Weapon",
+    parent_guid=weapon_masteries.guid,
+    description="Simple melee weapons require minimal training and include clubs, daggers, and quarterstaffs.",
+    entry_category="definition",
+    source=phb_source
+)
+
+simple_ranged = rule(
+    guid="simple-ranged-weapon",
+    name="Simple Ranged Weapon",
+    parent_guid=weapon_masteries.guid,
+    description="Simple ranged weapons include light crossbows and shortbows.",
+    entry_category="definition",
+    source=phb_source
+)
+
+martial_melee = rule(
+    guid="martial-melee-weapon",
+    name="Martial Melee Weapon",
+    parent_guid=weapon_masteries.guid,
+    description="Martial melee weapons require specialized training and include longswords, greatswords, and glaives.",
+    entry_category="definition",
+    source=phb_source
+)
+
+martial_ranged = rule(
+    guid="martial-ranged-weapon",
+    name="Martial Ranged Weapon",
+    parent_guid=weapon_masteries.guid,
+    description="Martial ranged weapons include longbows and heavy crossbows.",
+    entry_category="definition",
+    source=phb_source
+)
+
+# Collect all seed entries
 SEED_ENTRIES = [
-    # Damage Types Container
-    {
-        "guid": "d&d5.0-basic-rule-damage-types",
-        "name": "Damage Types",
-        "entry_type": "basic-rule",
-        "data": {
-            "name": "Damage Types",
-            "description": "# Damage Types\n\nThe various types of damage that can be dealt in D&D 5e.",
-            "entry_category": "container"
-        },
-        "source": {"name": "PHB"}
-    },
-    # Physical Damage Types
-    {
-        "guid": "d&d5.0-basic-rule-slashing",
-        "name": "Slashing",
-        "entry_type": "basic-rule",
-        "parent_guid": "d&d5.0-basic-rule-damage-types",
-        "data": {
-            "name": "Slashing",
-            "description": "Slashing damage is dealt by swords, axes, and claws.",
-            "entry_category": "definition",
-            "parent_guid": "d&d5.0-basic-rule-damage-types"
-        },
-        "source": {"name": "PHB"}
-    },
-    {
-        "guid": "d&d5.0-basic-rule-bludgeoning",
-        "name": "Bludgeoning",
-        "entry_type": "basic-rule",
-        "parent_guid": "d&d5.0-basic-rule-damage-types",
-        "data": {
-            "name": "Bludgeoning",
-            "description": "Bludgeoning damage is dealt by blunt force from hammers, clubs, and falling.",
-            "entry_category": "definition",
-            "parent_guid": "d&d5.0-basic-rule-damage-types"
-        },
-        "source": {"name": "PHB"}
-    },
-    {
-        "guid": "d&d5.0-basic-rule-piercing",
-        "name": "Piercing",
-        "entry_type": "basic-rule",
-        "parent_guid": "d&d5.0-basic-rule-damage-types",
-        "data": {
-            "name": "Piercing",
-            "description": "Piercing damage is dealt by arrows, spears, and fangs.",
-            "entry_category": "definition",
-            "parent_guid": "d&d5.0-basic-rule-damage-types"
-        },
-        "source": {"name": "PHB"}
-    },
-    # Equipment Hierarchy
-    {
-        "guid": "d&d5.0-basic-rule-equipment",
-        "name": "Equipment",
-        "entry_type": "basic-rule",
-        "data": {
-            "name": "Equipment",
-            "description": "# Equipment\n\nAdventurers rely on various types of equipment to survive and thrive.",
-            "entry_category": "container"
-        },
-        "source": {"name": "PHB"}
-    },
-    {
-        "guid": "d&d5.0-basic-rule-weapons",
-        "name": "Weapons",
-        "entry_type": "basic-rule",
-        "parent_guid": "d&d5.0-basic-rule-equipment",
-        "data": {
-            "name": "Weapons",
-            "description": "## Weapons\n\nWeapons are categorized by their complexity and fighting style.",
-            "entry_category": "container",
-            "parent_guid": "d&d5.0-basic-rule-equipment"
-        },
-        "source": {"name": "PHB"}
-    },
-    {
-        "guid": "d&d5.0-basic-rule-weapon-masteries",
-        "name": "Weapon Masteries",
-        "entry_type": "basic-rule",
-        "parent_guid": "d&d5.0-basic-rule-weapons",
-        "data": {
-            "name": "Weapon Masteries",
-            "description": "### Weapon Masteries\n\nWeapon proficiency categories.",
-            "entry_category": "container",
-            "parent_guid": "d&d5.0-basic-rule-weapons"
-        },
-        "source": {"name": "PHB"}
-    },
-    {
-        "guid": "d&d5.0-basic-rule-simple-melee-weapon",
-        "name": "Simple Melee Weapon",
-        "entry_type": "basic-rule",
-        "parent_guid": "d&d5.0-basic-rule-weapon-masteries",
-        "data": {
-            "name": "Simple Melee Weapon",
-            "description": "Simple melee weapons require minimal training and include clubs, daggers, and quarterstaffs.",
-            "entry_category": "definition",
-            "parent_guid": "d&d5.0-basic-rule-weapon-masteries"
-        },
-        "source": {"name": "PHB"}
-    },
-    {
-        "guid": "d&d5.0-basic-rule-simple-ranged-weapon",
-        "name": "Simple Ranged Weapon",
-        "entry_type": "basic-rule",
-        "parent_guid": "d&d5.0-basic-rule-weapon-masteries",
-        "data": {
-            "name": "Simple Ranged Weapon",
-            "description": "Simple ranged weapons include light crossbows and shortbows.",
-            "entry_category": "definition",
-            "parent_guid": "d&d5.0-basic-rule-weapon-masteries"
-        },
-        "source": {"name": "PHB"}
-    },
-    {
-        "guid": "d&d5.0-basic-rule-martial-melee-weapon",
-        "name": "Martial Melee Weapon",
-        "entry_type": "basic-rule",
-        "parent_guid": "d&d5.0-basic-rule-weapon-masteries",
-        "data": {
-            "name": "Martial Melee Weapon",
-            "description": "Martial melee weapons require specialized training and include longswords, greatswords, and glaives.",
-            "entry_category": "definition",
-            "parent_guid": "d&d5.0-basic-rule-weapon-masteries"
-        },
-        "source": {"name": "PHB"}
-    },
-    {
-        "guid": "d&d5.0-basic-rule-martial-ranged-weapon",
-        "name": "Martial Ranged Weapon",
-        "entry_type": "basic-rule",
-        "parent_guid": "d&d5.0-basic-rule-weapon-masteries",
-        "data": {
-            "name": "Martial Ranged Weapon",
-            "description": "Martial ranged weapons include longbows and heavy crossbows.",
-            "entry_category": "definition",
-            "parent_guid": "d&d5.0-basic-rule-weapon-masteries"
-        },
-        "source": {"name": "PHB"}
-    },
+    # Damage Types
+    damage_types,
+    slashing,
+    bludgeoning,
+    piercing,
+    # Equipment
+    equipment,
+    weapons,
+    weapon_masteries,
+    simple_melee,
+    simple_ranged,
+    martial_melee,
+    martial_ranged
 ]
 
 SCHEMAS = {
-    "basic-rule": rule,
+    "rule": rule,
     "item": item,
     "spell": spell,
     "class": character_class
