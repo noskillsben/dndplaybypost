@@ -46,7 +46,7 @@ The `ObjectRegistration` + field-types design from RESTART_PLAN.md. This is the 
 | ✅ S-02 | `ObjectRegistration`: fields → Pydantic model (validation) + JSON form schema (frontend) | P0 | M | S-01 |
 | ✅ S-03 | Reference field types: `compendium_link` (query by type/tag/prefix), `compendium_link_list` (multi-select), `parent_link` | P0 | M | S-02 |
 | ✅ S-04 | Composite field types: `list_of(field)` (e.g. list of damage entries), `table` (rows × typed columns — needed for class level tables, rollable tables), `dice_expression` (validated, e.g. "2d6+3") | P0 | L | S-02 |
-| S-05 | Choice/grant field types for character building: `choice(n, from)` (pick 2 skills…), `grant` (this race grants darkvision) — the machine-readable hooks the wizard consumes | P0 | L | S-03 |
+| ✅ S-05 | Choice/grant field types for character building: `choice(n, from)` (pick 2 skills…), `grant` (this race grants darkvision) — the machine-readable hooks the wizard consumes | P0 | L | S-03 |
 | S-06 | **Template-type editor UI**: create/edit entry *types* (their fields) in-app and store them as data, so users can define new content types without writing Python. Python-defined built-ins become seed data for this system | P0 | L | S-04 |
 | S-07 | Schema versioning: template changes don't corrupt existing entries; entries record the template version they were written against | P1 | M | S-06 |
 | S-08 | Computed fields (formula strings evaluated against entry/character data, e.g. `floor((str-10)/2)`); safe evaluator, no `eval` | P1 | L | S-04 |

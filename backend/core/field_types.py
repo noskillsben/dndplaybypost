@@ -1,7 +1,7 @@
 import copy
 import re
 from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
-from pydantic import AfterValidator, Field, create_model
+from pydantic import AfterValidator, BaseModel, Field, create_model, model_validator
 from pydantic_core import PydanticUndefined
 
 class FieldType:
@@ -388,6 +388,83 @@ class DiceExpression(FieldType):
         }
 
 
+class ChoiceSpec(BaseModel):
+    """Machine-readable choice rule stored on an entry, e.g. a class that says
+    "pick 2 skills from ...". The character wizard consumes this; the entry
+    only records the rule.
+
+    Exactly what can be picked comes from an explicit `options` guid list,
+    a compendium `query` (see parse_link_query), or both (query narrowed to
+    an allow-list)."""
+    choose: int = Field(ge=1)
+    options: Optional[List[str]] = None
+    query: Optional[str] = None
+
+    @model_validator(mode="after")
+    def check_source(self):
+        if not self.options and not self.query:
+            raise ValueError("choice requires 'options' (guid list) or 'query'")
+        if self.options is not None and len(self.options) < self.choose:
+            raise ValueError("'options' must contain at least 'choose' entries")
+        return self
+
+
+class Choice(FieldType):
+    """Field whose value is a ChoiceSpec ("choose N from ...")"""
+
+    def __init__(self, query: str = "", label: str = "Choice"):
+        """
+        Args:
+            query: Default/constraining link query for the option picker,
+                   e.g. "type:skill" (see parse_link_query)
+            label: Label for the form widget
+        """
+        self.query = query
+        self.label = label
+
+    def to_pydantic_field(self) -> Tuple[type, Any]:
+        return (ChoiceSpec, Field())
+
+    def to_form_field(self) -> dict:
+        return {
+            'type': 'choice',
+            'query': self.query,
+            'label': self.label,
+        }
+
+
+class Grant(FieldType):
+    """Field whose value is a list of compendium guids granted by this entry
+    (e.g. a race granting darkvision, a class granting proficiencies)."""
+
+    def __init__(self, query: str = "", label: str = "Grants",
+                 min_items: Optional[int] = None, max_items: Optional[int] = None):
+        self.query = query
+        self.label = label
+        self.min_items = min_items
+        self.max_items = max_items
+
+    def to_pydantic_field(self) -> Tuple[type, Any]:
+        constraints = {}
+        if self.min_items is not None:
+            constraints['min_length'] = self.min_items
+        if self.max_items is not None:
+            constraints['max_length'] = self.max_items
+        return (List[str], Field(**constraints))
+
+    def to_form_field(self) -> dict:
+        field = {
+            'type': 'grant',
+            'query': self.query,
+            'label': self.label,
+        }
+        if self.min_items is not None:
+            field['minItems'] = self.min_items
+        if self.max_items is not None:
+            field['maxItems'] = self.max_items
+        return field
+
+
 class EntryCategory(FieldType):
     """Enum field for entry categorization (container/definition/item)"""
     
@@ -448,3 +525,9 @@ def table(columns, min_rows: int = None, max_rows: int = None, label: str = "") 
 
 def dice_expression(placeholder: str = "e.g. 2d6+3") -> DiceExpression:
     return DiceExpression(placeholder)
+
+def choice(query: str = "", label: str = "Choice") -> Choice:
+    return Choice(query, label)
+
+def grant(query: str = "", label: str = "Grants", min_items: int = None, max_items: int = None) -> Grant:
+    return Grant(query, label, min_items, max_items)
