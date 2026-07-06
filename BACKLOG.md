@@ -60,7 +60,7 @@ The `ObjectRegistration` + field-types design from RESTART_PLAN.md. This is the 
 | ✅ C-03 | CRUD API: create/read/update/delete entries; validation against the entry-type template; PATCH support | P0 | M | S-02, C-01 |
 | ✅ C-04 | List/query API: filter by system, type, tag, homebrew, parent_guid, guid_prefix; text search on name; pagination (tag filter deferred to C-06) | P0 | M | C-01 |
 | ✅ C-05 | GUID service: slugify names, collision handling, custom suffix support, rename = new guid + redirect record | P0 | S | C-01 |
-| C-06 | Tags on entries + tag filtering (rarity, spell school, weapon category live better as tags/fields than as types) | P1 | S | C-04 |
+| ✅ C-06 | Tags on entries + tag filtering (rarity, spell school, weapon category live better as tags/fields than as types) | P1 | S | C-04 |
 | C-07 | Cross-reference integrity: warn (not block) when deleting an entry that other entries link to; "what links here" endpoint | P1 | M | C-04 |
 | C-08 | Entry detail rendering: markdown rendering, resolved links (damage_type guid → clickable "Slashing"), stat-block style layout per type | P0 | M | C-04 |
 | C-09 | Compendium browser v2: browse by compendium → type → entry; search-as-you-type (debounced — current code fires a request per keystroke); edit + delete from UI | P0 | M | C-08, F-07 |

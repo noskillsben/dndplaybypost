@@ -53,6 +53,9 @@ class CompendiumEntry(Base):
     # Owning compendium (nullable for legacy/loose entries)
     compendium_guid = Column(String(100), ForeignKey('compendiums.guid'), nullable=True, index=True)
     
+    # Slugified tag strings, e.g. ["martial-weapon", "evocation"]
+    tags = Column(JSONVariant, nullable=False, default=list, server_default='[]')
+
     # Metadata
     homebrew = Column(Boolean, default=False, index=True)
     # Source info as JSON: {"name": "PHB", "page": 123, "link": "https://..."}
@@ -71,6 +74,7 @@ class CompendiumEntry(Base):
         Index('idx_system_type', 'system', 'entry_type'),
         # GIN index on JSONB data (PostgreSQL only; ignored on other dialects)
         Index('idx_compendium_data_gin', 'data', postgresql_using='gin'),
+        Index('idx_compendium_tags_gin', 'tags', postgresql_using='gin'),
     )
 
 

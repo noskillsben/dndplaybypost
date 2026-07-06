@@ -109,6 +109,7 @@ async def rename_entry(
             homebrew=entry.homebrew,
             source=entry.source,
             compendium_guid=entry.compendium_guid,
+            tags=entry.tags,
             created_at=entry.created_at,
         )
     )

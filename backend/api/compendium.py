@@ -1,5 +1,8 @@
+import json
+
 from fastapi import APIRouter, HTTPException, Depends, Query
-from sqlalchemy import func
+from sqlalchemy import String, cast, func, literal
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Optional, List, Dict, Any
@@ -15,6 +18,29 @@ from core.errors import schema_validation_error
 
 router = APIRouter(prefix="/api/compendium", tags=["compendium"])
 
+def _normalize_tags(tags: Optional[List[str]]) -> List[str]:
+    """Slugify tags, drop empties, dedupe preserving order."""
+    if not tags:
+        return []
+    normalized = []
+    for tag in tags:
+        if not tag or not tag.strip():
+            continue
+        slug = guid_service.slugify(tag)
+        if slug not in normalized:
+            normalized.append(slug)
+    return normalized
+
+
+def _tag_filter(db: AsyncSession, tag: str):
+    """Portable "tags contains tag" filter: JSONB containment on PostgreSQL
+    (GIN-indexed), JSON-text LIKE on SQLite (tags are slugified, so the
+    quoted form can't false-positive on substrings)."""
+    if db.bind.dialect.name == "postgresql":
+        return CompendiumEntry.tags.op("@>")(cast(literal(json.dumps([tag])), JSONB))
+    return cast(CompendiumEntry.tags, String).like(f'%"{tag}"%')
+
+
 class CompendiumCreate(BaseModel):
     system: str
     entry_type: str
@@ -26,6 +52,7 @@ class CompendiumCreate(BaseModel):
     homebrew: bool = False
     source: Optional[Dict[str, Any]] = None  # e.g., {"name": "PHB", "page": 123, "link": "https://..."}
     compendium_guid: Optional[str] = None  # Owning compendium container
+    tags: Optional[List[str]] = None  # Slugified on write, e.g. ["martial-weapon"]
 
 class CompendiumRename(BaseModel):
     new_name: str
@@ -38,6 +65,7 @@ class CompendiumReplace(BaseModel):
     homebrew: bool = False
     source: Optional[Dict[str, Any]] = None
     compendium_guid: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 class CompendiumPatch(BaseModel):
     name: Optional[str] = None
@@ -46,6 +74,7 @@ class CompendiumPatch(BaseModel):
     homebrew: Optional[bool] = None
     source: Optional[Dict[str, Any]] = None
     compendium_guid: Optional[str] = None
+    tags: Optional[List[str]] = None
 
 
 async def _get_entry_or_404(db: AsyncSession, guid: str) -> CompendiumEntry:
@@ -95,6 +124,7 @@ async def list_entries(
     parent_guid: Optional[str] = Query(None, description="Filter by parent GUID, use 'null' for top-level entries"),
     guid_prefix: Optional[str] = Query(None, description="Filter by GUID prefix, e.g. 'd&d5.0-rule-'"),
     compendium: Optional[str] = Query(None, description="Filter by owning compendium GUID"),
+    tag: Optional[List[str]] = Query(None, description="Filter by tag (repeatable; entries must have all given tags)"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db)
@@ -119,6 +149,9 @@ async def list_entries(
         filters.append(CompendiumEntry.guid.startswith(guid_prefix, autoescape=True))
     if compendium:
         filters.append(CompendiumEntry.compendium_guid == compendium)
+    if tag:
+        for t in _normalize_tags(tag):
+            filters.append(_tag_filter(db, t))
 
     count_stmt = select(func.count()).select_from(CompendiumEntry).where(*filters)
     total = (await db.execute(count_stmt)).scalar_one()
@@ -185,6 +218,7 @@ async def create_entry(
         homebrew=payload.homebrew,
         source=payload.source,
         compendium_guid=payload.compendium_guid,
+        tags=_normalize_tags(payload.tags),
     )
     
     db.add(entry)
@@ -217,6 +251,7 @@ async def replace_entry(
     entry.homebrew = payload.homebrew
     entry.source = payload.source
     entry.compendium_guid = payload.compendium_guid
+    entry.tags = _normalize_tags(payload.tags)
 
     await db.commit()
     await db.refresh(entry)
@@ -256,6 +291,8 @@ async def patch_entry(
         entry.source = payload.source
     if "compendium_guid" in provided:
         entry.compendium_guid = payload.compendium_guid
+    if "tags" in provided:
+        entry.tags = _normalize_tags(payload.tags)
 
     await db.commit()
     await db.refresh(entry)
