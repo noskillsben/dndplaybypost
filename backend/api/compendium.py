@@ -3,7 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Optional, List, Dict, Any
-from models.compendium import CompendiumEntry
+from models.compendium import Compendium, CompendiumEntry
 from database import get_db
 from api.schemas import SCHEMA_REGISTRY
 from core import guids as guid_service
@@ -25,6 +25,7 @@ class CompendiumCreate(BaseModel):
     guid_suffix: Optional[str] = None  # Optional disambiguating suffix, e.g. "srd"
     homebrew: bool = False
     source: Optional[Dict[str, Any]] = None  # e.g., {"name": "PHB", "page": 123, "link": "https://..."}
+    compendium_guid: Optional[str] = None  # Owning compendium container
 
 class CompendiumRename(BaseModel):
     new_name: str
@@ -36,6 +37,7 @@ class CompendiumReplace(BaseModel):
     parent_guid: Optional[str] = None
     homebrew: bool = False
     source: Optional[Dict[str, Any]] = None
+    compendium_guid: Optional[str] = None
 
 class CompendiumPatch(BaseModel):
     name: Optional[str] = None
@@ -43,6 +45,7 @@ class CompendiumPatch(BaseModel):
     parent_guid: Optional[str] = None
     homebrew: Optional[bool] = None
     source: Optional[Dict[str, Any]] = None
+    compendium_guid: Optional[str] = None
 
 
 async def _get_entry_or_404(db: AsyncSession, guid: str) -> CompendiumEntry:
@@ -52,6 +55,14 @@ async def _get_entry_or_404(db: AsyncSession, guid: str) -> CompendiumEntry:
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
     return entry
+
+
+async def _validate_compendium(db: AsyncSession, compendium_guid: str):
+    result = await db.execute(
+        select(Compendium.guid).where(Compendium.guid == compendium_guid)
+    )
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Compendium not found")
 
 
 async def _validate_parent(db: AsyncSession, parent_guid: str, self_guid: Optional[str] = None):
@@ -83,6 +94,7 @@ async def list_entries(
     homebrew: Optional[bool] = None,
     parent_guid: Optional[str] = Query(None, description="Filter by parent GUID, use 'null' for top-level entries"),
     guid_prefix: Optional[str] = Query(None, description="Filter by GUID prefix, e.g. 'd&d5.0-rule-'"),
+    compendium: Optional[str] = Query(None, description="Filter by owning compendium GUID"),
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db)
@@ -105,6 +117,8 @@ async def list_entries(
             filters.append(CompendiumEntry.parent_guid == parent_guid)
     if guid_prefix:
         filters.append(CompendiumEntry.guid.startswith(guid_prefix, autoescape=True))
+    if compendium:
+        filters.append(CompendiumEntry.compendium_guid == compendium)
 
     count_stmt = select(func.count()).select_from(CompendiumEntry).where(*filters)
     total = (await db.execute(count_stmt)).scalar_one()
@@ -131,6 +145,9 @@ async def create_entry(
     db: AsyncSession = Depends(get_db)
 ):
     """Create a new compendium entry"""
+    if payload.compendium_guid:
+        await _validate_compendium(db, payload.compendium_guid)
+
     # 1. Validate parent_guid if provided
     if payload.parent_guid:
         parent_check = await db.execute(
@@ -166,7 +183,8 @@ async def create_entry(
         data=validated_data,
         parent_guid=payload.parent_guid,
         homebrew=payload.homebrew,
-        source=payload.source
+        source=payload.source,
+        compendium_guid=payload.compendium_guid,
     )
     
     db.add(entry)
@@ -186,6 +204,8 @@ async def replace_entry(
 
     if payload.parent_guid:
         await _validate_parent(db, payload.parent_guid, self_guid=entry.guid)
+    if payload.compendium_guid:
+        await _validate_compendium(db, payload.compendium_guid)
 
     data_to_validate = payload.data.copy()
     data_to_validate.setdefault("name", payload.name)
@@ -196,6 +216,7 @@ async def replace_entry(
     entry.parent_guid = payload.parent_guid
     entry.homebrew = payload.homebrew
     entry.source = payload.source
+    entry.compendium_guid = payload.compendium_guid
 
     await db.commit()
     await db.refresh(entry)
@@ -214,6 +235,8 @@ async def patch_entry(
 
     if "parent_guid" in provided and payload.parent_guid:
         await _validate_parent(db, payload.parent_guid, self_guid=entry.guid)
+    if "compendium_guid" in provided and payload.compendium_guid:
+        await _validate_compendium(db, payload.compendium_guid)
 
     merged = dict(entry.data)
     if payload.data is not None:
@@ -231,6 +254,8 @@ async def patch_entry(
         entry.homebrew = payload.homebrew
     if "source" in provided:
         entry.source = payload.source
+    if "compendium_guid" in provided:
+        entry.compendium_guid = payload.compendium_guid
 
     await db.commit()
     await db.refresh(entry)

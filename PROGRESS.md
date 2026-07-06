@@ -33,6 +33,10 @@ Session log for autonomous work through BACKLOG.md / ROADMAP.md. Newest entries 
 - Unmounted the broken actors router from `main.py` (sync/async DB mismatch); `api/routes/actors.py` kept on disk, returns in EPIC 7.
 - Phase 2 order per Ben: C-02, S-04, S-05, C-06, S-06, W-02; exit test D-12 (Lasers & Feelings via in-app template editor). Design constraint: templates are data, editable in-browser; `schemas/systems/` Python definitions become seed data, not source of truth.
 
+### 2026-07-06 — Phase 2 in progress
+
+- **C-02**: `Compendium` container model (`compendiums` table: slug guid, name, description, system) + `compendium_guid` FK on entries (nullable — loose entries allowed). Migration `f3a1c9d40b17` backfills a `{system}-core` compendium per distinct system and assigns existing entries (verified on live PG: 11 entries → `d&d5.0-core`). New `/api/compendiums` CRUD (list includes entry_count; delete blocked with 409 while non-empty); entry create/PUT/PATCH accept `compendium_guid`; list API gains `compendium` filter; rename preserves membership; seeding assigns `{system}-core`. Games "subscribe" to compendiums when the Game model lands (U-03). 15 tests.
+
 ### 2026-07-06 — Phase 1 complete
 
 - **S-01** (committed earlier): decimal/boolean/select primitive field types in schema builder + tests.

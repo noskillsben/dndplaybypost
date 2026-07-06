@@ -6,7 +6,7 @@ from core.config import get_settings
 from core.errors import register_exception_handlers
 
 # api imports, core of the application
-from api import schemas, compendium, systems
+from api import schemas, compendium, compendiums, systems
 
 settings = get_settings()
 
@@ -26,6 +26,7 @@ app.add_middleware(
 # Include routers
 app.include_router(schemas.router)
 app.include_router(compendium.router)
+app.include_router(compendiums.router)
 app.include_router(systems.router)
 
 @app.get("/")

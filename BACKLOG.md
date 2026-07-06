@@ -56,7 +56,7 @@ The `ObjectRegistration` + field-types design from RESTART_PLAN.md. This is the 
 | ID | Item | Pri | Size | Depends on |
 |----|------|-----|------|------------|
 | ✅ C-01 | `CompendiumEntry` model per RESTART_PLAN (guid PK, system, entry_type, name, JSONB data, homebrew, source, parent_guid, timestamps) + migration. Use real `JSONB`, add GIN index | P0 | S | F-03 |
-| C-02 | `Compendium` container model: a named compendium (e.g. "D&D 5e 2014 SRD", "Ben's homebrew") owning entries; entries belong to a compendium, games subscribe to compendiums | P0 | M | C-01 |
+| ✅ C-02 | `Compendium` container model: a named compendium (e.g. "D&D 5e 2014 SRD", "Ben's homebrew") owning entries; entries belong to a compendium, games subscribe to compendiums | P0 | M | C-01 |
 | ✅ C-03 | CRUD API: create/read/update/delete entries; validation against the entry-type template; PATCH support | P0 | M | S-02, C-01 |
 | ✅ C-04 | List/query API: filter by system, type, tag, homebrew, parent_guid, guid_prefix; text search on name; pagination (tag filter deferred to C-06) | P0 | M | C-01 |
 | ✅ C-05 | GUID service: slugify names, collision handling, custom suffix support, rename = new guid + redirect record | P0 | S | C-01 |

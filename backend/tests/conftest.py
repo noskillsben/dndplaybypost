@@ -11,13 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.pool import StaticPool
 
 from database import Base, get_db
-from models.compendium import CompendiumEntry, GuidRedirect
+from models.compendium import Compendium, CompendiumEntry, GuidRedirect
 from models.system import System
 from main import app
 
 # Only the tables under test — actor/campaign/user models use PG-only column
 # types and aren't covered by the Phase 0/1 suites.
-TEST_TABLES = [System.__table__, CompendiumEntry.__table__, GuidRedirect.__table__]
+TEST_TABLES = [System.__table__, Compendium.__table__, CompendiumEntry.__table__, GuidRedirect.__table__]
 
 
 @pytest.fixture

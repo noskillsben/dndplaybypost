@@ -21,7 +21,7 @@ from sqlalchemy.future import select
 sys.path.insert(0, '/app')
 
 from database import DATABASE_URL
-from models.compendium import CompendiumEntry
+from models.compendium import Compendium, CompendiumEntry
 from models.system import System
 
 
@@ -103,6 +103,22 @@ async def seed_systems(session: AsyncSession, system_modules):
         print(f"  ⊘ Skipped {skipped_count} existing systems")
 
 
+async def ensure_core_compendium(session: AsyncSession, system: str) -> str:
+    """Create (or reuse) the '<system>-core' compendium container for seed entries."""
+    guid = f"{system}-core"
+    result = await session.execute(select(Compendium).where(Compendium.guid == guid))
+    if not result.scalar_one_or_none():
+        session.add(Compendium(
+            guid=guid,
+            name=f"{system} core",
+            description="Seeded core content",
+            system=system,
+        ))
+        await session.commit()
+        print(f"  ✓ Created compendium {guid}")
+    return guid
+
+
 async def seed_system(session: AsyncSession, system_module):
     """Seed entries for a system module"""
     # Get system name from SYSTEM_INFO or first schema
@@ -119,6 +135,7 @@ async def seed_system(session: AsyncSession, system_module):
     
     created_count = 0
     skipped_count = 0
+    core_compendiums = {}
     
     for entry_data in system_module.SEED_ENTRIES:
         # TODO: Remove this after all seed data is updated to use SeedEntry objects
@@ -153,6 +170,9 @@ async def seed_system(session: AsyncSession, system_module):
         # Determine strict system match
         final_system = entry_system or system_name
         
+        if final_system not in core_compendiums:
+            core_compendiums[final_system] = await ensure_core_compendium(session, final_system)
+        
         # Create entry
         entry = CompendiumEntry(
             guid=guid,
@@ -162,7 +182,8 @@ async def seed_system(session: AsyncSession, system_module):
             data=data,
             parent_guid=parent_guid,
             homebrew=False,
-            source=source
+            source=source,
+            compendium_guid=core_compendiums[final_system],
         )
         session.add(entry)
         created_count += 1
