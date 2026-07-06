@@ -47,3 +47,12 @@ class CompendiumEntry(Base):
         # GIN index on JSONB data (PostgreSQL only; ignored on other dialects)
         Index('idx_compendium_data_gin', 'data', postgresql_using='gin'),
     )
+
+
+class GuidRedirect(Base):
+    """Redirect record left behind when an entry is renamed (old guid -> new guid)."""
+    __tablename__ = "guid_redirects"
+
+    old_guid = Column(String(200), primary_key=True)
+    new_guid = Column(String(200), nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

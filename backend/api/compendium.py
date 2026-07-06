@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 from models.compendium import CompendiumEntry
 from database import get_db
 from api.schemas import SCHEMA_REGISTRY
+from core import guids as guid_service
 import datetime
 
 from pydantic import BaseModel
@@ -18,8 +19,13 @@ class CompendiumCreate(BaseModel):
     data: Dict[str, Any]
     parent_guid: Optional[str] = None  # For hierarchical entries
     guid: Optional[str] = None  # Optional custom GUID (will auto-generate if not provided)
+    guid_suffix: Optional[str] = None  # Optional disambiguating suffix, e.g. "srd"
     homebrew: bool = False
     source: Optional[Dict[str, Any]] = None  # e.g., {"name": "PHB", "page": 123, "link": "https://..."}
+
+class CompendiumRename(BaseModel):
+    new_name: str
+    guid_suffix: Optional[str] = None
 
 @router.get("/")
 async def list_entries(
@@ -56,8 +62,9 @@ async def list_entries(
 
 @router.get("/{guid}")
 async def get_entry(guid: str, db: AsyncSession = Depends(get_db)):
-    """Get a specific compendium entry"""
-    result = await db.execute(select(CompendiumEntry).where(CompendiumEntry.guid == guid))
+    """Get a specific compendium entry (follows rename redirects)"""
+    resolved = await guid_service.resolve_guid(db, guid)
+    result = await db.execute(select(CompendiumEntry).where(CompendiumEntry.guid == resolved))
     entry = result.scalar_one_or_none()
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
@@ -100,23 +107,14 @@ async def create_entry(
     if payload.guid:
         # Use custom GUID if provided
         guid = payload.guid
-        # Check if it already exists
-        check = await db.execute(select(CompendiumEntry).where(CompendiumEntry.guid == guid))
-        if check.scalar_one_or_none():
+        if await guid_service.guid_in_use(db, guid):
             raise HTTPException(status_code=400, detail=f"GUID '{guid}' already exists")
     else:
-        # Auto-generate GUID from name
-        guid_base = f"{payload.system}-{payload.entry_type}-{payload.name.lower().replace(' ', '-')}"
-        guid = guid_base
-        
-        # 4. Check for duplicates and increment if needed
-        counter = 1
-        while True:
-            check = await db.execute(select(CompendiumEntry).where(CompendiumEntry.guid == guid))
-            if not check.scalar_one_or_none():
-                break
-            guid = f"{guid_base}-{counter}"
-            counter += 1
+        # Auto-generate GUID from name (slugified), with collision handling
+        guid = await guid_service.generate_unique_guid(
+            db, payload.system, payload.entry_type, payload.name,
+            suffix=payload.guid_suffix,
+        )
     
     # 5. Create entry
     entry = CompendiumEntry(
@@ -134,6 +132,27 @@ async def create_entry(
     await db.commit()
     await db.refresh(entry)
     
+    return entry
+
+@router.post("/{guid}/rename")
+async def rename_entry(
+    guid: str,
+    payload: CompendiumRename,
+    db: AsyncSession = Depends(get_db)
+):
+    """Rename an entry: assigns a new guid derived from the new name and
+    leaves a redirect record so the old guid keeps resolving."""
+    resolved = await guid_service.resolve_guid(db, guid)
+    result = await db.execute(select(CompendiumEntry).where(CompendiumEntry.guid == resolved))
+    entry = result.scalar_one_or_none()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    entry = await guid_service.rename_entry(
+        db, entry, payload.new_name, suffix=payload.guid_suffix
+    )
+    await db.commit()
+    await db.refresh(entry)
     return entry
 
 @router.get("/{guid}/children")
