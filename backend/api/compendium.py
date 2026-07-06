@@ -27,6 +27,51 @@ class CompendiumRename(BaseModel):
     new_name: str
     guid_suffix: Optional[str] = None
 
+class CompendiumReplace(BaseModel):
+    name: str
+    data: Dict[str, Any]
+    parent_guid: Optional[str] = None
+    homebrew: bool = False
+    source: Optional[Dict[str, Any]] = None
+
+class CompendiumPatch(BaseModel):
+    name: Optional[str] = None
+    data: Optional[Dict[str, Any]] = None
+    parent_guid: Optional[str] = None
+    homebrew: Optional[bool] = None
+    source: Optional[Dict[str, Any]] = None
+
+
+async def _get_entry_or_404(db: AsyncSession, guid: str) -> CompendiumEntry:
+    resolved = await guid_service.resolve_guid(db, guid)
+    result = await db.execute(select(CompendiumEntry).where(CompendiumEntry.guid == resolved))
+    entry = result.scalar_one_or_none()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+    return entry
+
+
+async def _validate_parent(db: AsyncSession, parent_guid: str, self_guid: Optional[str] = None):
+    if self_guid is not None and parent_guid == self_guid:
+        raise HTTPException(status_code=400, detail="Entry cannot be its own parent")
+    parent_check = await db.execute(
+        select(CompendiumEntry).where(CompendiumEntry.guid == parent_guid)
+    )
+    if not parent_check.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Parent entry not found")
+
+
+def _validate_data(system: str, entry_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    if system not in SCHEMA_REGISTRY:
+        raise HTTPException(status_code=400, detail="Invalid system")
+    if entry_type not in SCHEMA_REGISTRY[system]:
+        raise HTTPException(status_code=400, detail="Invalid entry type")
+    Model = SCHEMA_REGISTRY[system][entry_type].model()
+    try:
+        return Model(**data).model_dump()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
+
 @router.get("/")
 async def list_entries(
     system: Optional[str] = None,
@@ -63,12 +108,7 @@ async def list_entries(
 @router.get("/{guid}")
 async def get_entry(guid: str, db: AsyncSession = Depends(get_db)):
     """Get a specific compendium entry (follows rename redirects)"""
-    resolved = await guid_service.resolve_guid(db, guid)
-    result = await db.execute(select(CompendiumEntry).where(CompendiumEntry.guid == resolved))
-    entry = result.scalar_one_or_none()
-    if not entry:
-        raise HTTPException(status_code=404, detail="Entry not found")
-    return entry
+    return await _get_entry_or_404(db, guid)
 
 @router.post("/", status_code=201)
 async def create_entry(
@@ -134,6 +174,67 @@ async def create_entry(
     
     return entry
 
+@router.put("/{guid}")
+async def replace_entry(
+    guid: str,
+    payload: CompendiumReplace,
+    db: AsyncSession = Depends(get_db)
+):
+    """Full replace of an entry's content (guid stays stable; use /rename to change it)"""
+    entry = await _get_entry_or_404(db, guid)
+
+    if payload.parent_guid:
+        await _validate_parent(db, payload.parent_guid, self_guid=entry.guid)
+
+    data_to_validate = payload.data.copy()
+    data_to_validate.setdefault("name", payload.name)
+    validated = _validate_data(entry.system, entry.entry_type, data_to_validate)
+
+    entry.name = payload.name
+    entry.data = validated
+    entry.parent_guid = payload.parent_guid
+    entry.homebrew = payload.homebrew
+    entry.source = payload.source
+
+    await db.commit()
+    await db.refresh(entry)
+    return entry
+
+@router.patch("/{guid}")
+async def patch_entry(
+    guid: str,
+    payload: CompendiumPatch,
+    db: AsyncSession = Depends(get_db)
+):
+    """Partial update: provided data keys are merged into existing data,
+    then the merged result is re-validated against the entry-type template."""
+    entry = await _get_entry_or_404(db, guid)
+    provided = payload.model_fields_set
+
+    if "parent_guid" in provided and payload.parent_guid:
+        await _validate_parent(db, payload.parent_guid, self_guid=entry.guid)
+
+    merged = dict(entry.data)
+    if payload.data is not None:
+        merged.update(payload.data)
+    if "name" in provided and payload.name:
+        merged["name"] = payload.name
+    validated = _validate_data(entry.system, entry.entry_type, merged)
+
+    entry.data = validated
+    if "name" in provided and payload.name:
+        entry.name = payload.name
+    if "parent_guid" in provided:
+        entry.parent_guid = payload.parent_guid
+    if "homebrew" in provided and payload.homebrew is not None:
+        entry.homebrew = payload.homebrew
+    if "source" in provided:
+        entry.source = payload.source
+
+    await db.commit()
+    await db.refresh(entry)
+    return entry
+
 @router.post("/{guid}/rename")
 async def rename_entry(
     guid: str,
@@ -142,11 +243,7 @@ async def rename_entry(
 ):
     """Rename an entry: assigns a new guid derived from the new name and
     leaves a redirect record so the old guid keeps resolving."""
-    resolved = await guid_service.resolve_guid(db, guid)
-    result = await db.execute(select(CompendiumEntry).where(CompendiumEntry.guid == resolved))
-    entry = result.scalar_one_or_none()
-    if not entry:
-        raise HTTPException(status_code=404, detail="Entry not found")
+    entry = await _get_entry_or_404(db, guid)
 
     entry = await guid_service.rename_entry(
         db, entry, payload.new_name, suffix=payload.guid_suffix

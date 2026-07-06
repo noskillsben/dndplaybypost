@@ -9,6 +9,7 @@
     let types = [];
     let entries = [];
     let showCreateForm = false;
+    let editingEntry = null;
     let search = "";
     let loading = false;
 
@@ -31,6 +32,7 @@
         selectedType = null;
         entries = [];
         showCreateForm = false;
+        editingEntry = null;
         try {
             const data = await api.get(
                 `/api/schemas/${encodeURIComponent(system)}/types`,
@@ -44,6 +46,7 @@
     async function selectType(type) {
         selectedType = type;
         showCreateForm = false;
+        editingEntry = null;
         await fetchEntries();
     }
 
@@ -99,11 +102,58 @@
 
     function toggleCreateForm() {
         showCreateForm = !showCreateForm;
+        editingEntry = null;
         if (showCreateForm) {
             // Reset form metadata when opening
             guidSuffix = "";
             isHomebrew = true;
             sourceField = "User Homebrew";
+        }
+    }
+
+    function startEdit(entry) {
+        showCreateForm = false;
+        editingEntry = entry;
+        isHomebrew = entry.homebrew ?? false;
+        sourceField = entry.source?.name ?? "";
+    }
+
+    function cancelEdit() {
+        editingEntry = null;
+    }
+
+    async function handleEditSubmit(formData) {
+        try {
+            await api.put(
+                `/api/compendium/${encodeURIComponent(editingEntry.guid)}`,
+                {
+                    name: formData.name,
+                    data: formData,
+                    parent_guid: formData.parent_guid || null,
+                    homebrew: isHomebrew,
+                    source: sourceField.trim()
+                        ? { name: sourceField.trim() }
+                        : null,
+                },
+            );
+            editingEntry = null;
+            await fetchEntries();
+        } catch (e) {
+            console.error("Failed to update entry", e);
+            alert(`Error: ${e.message}`);
+        }
+    }
+
+    async function handleDelete(entry) {
+        if (!confirm(`Delete "${entry.name}" (${entry.guid})?`)) return;
+        try {
+            await api.delete(
+                `/api/compendium/${encodeURIComponent(entry.guid)}`,
+            );
+            await fetchEntries();
+        } catch (e) {
+            console.error("Failed to delete entry", e);
+            alert(`Error: ${e.message}`);
         }
     }
 </script>
@@ -223,6 +273,76 @@
                     <p class="text-gray-400">
                         Choose "item", "spell", etc. to see entries for {selectedSystem}.
                     </p>
+                </div>
+            {:else if editingEntry}
+                <div class="space-y-6">
+                    <div
+                        class="bg-white shadow-md rounded px-8 pt-6 pb-4 border border-gray-200"
+                    >
+                        <div
+                            class="flex justify-between items-center mb-4 border-b pb-2"
+                        >
+                            <h3 class="text-lg font-bold text-gray-800">
+                                Editing: {editingEntry.name}
+                                <span
+                                    class="text-xs font-mono text-gray-400 ml-2"
+                                    >{editingEntry.guid}</span
+                                >
+                            </h3>
+                            <button
+                                on:click={cancelEdit}
+                                class="text-sm text-gray-500 hover:text-gray-700 font-bold"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+
+                        <!-- Source -->
+                        <div class="mb-4">
+                            <label
+                                for="edit-source"
+                                class="block text-gray-700 text-sm font-bold mb-2"
+                            >
+                                Source
+                            </label>
+                            <input
+                                type="text"
+                                id="edit-source"
+                                bind:value={sourceField}
+                                placeholder="PHB, DMG, User Homebrew, etc."
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+
+                        <!-- Homebrew Checkbox -->
+                        <div class="mb-2">
+                            <label class="flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    bind:checked={isHomebrew}
+                                    class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                />
+                                <span
+                                    class="ml-2 text-sm font-medium text-gray-700"
+                                >
+                                    Mark as Homebrew
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Schema Fields, pre-filled with entry data -->
+                    {#key editingEntry.guid}
+                        <DynamicForm
+                            system={selectedSystem}
+                            entryType={selectedType}
+                            initialData={{
+                                ...editingEntry.data,
+                                parent_guid: editingEntry.parent_guid ?? "",
+                            }}
+                            onSubmit={handleEditSubmit}
+                        />
+                    {/key}
                 </div>
             {:else if showCreateForm}
                 <div class="space-y-6">
@@ -390,23 +510,44 @@
                                             "No description available."}
                                     </div>
                                     <div
-                                        class="mt-4 flex space-x-4 text-xs text-gray-400 italic"
+                                        class="mt-4 flex items-center justify-between"
                                     >
-                                        {#if entry.data.weight}
-                                            <span
-                                                >Weight: {entry.data.weight} lb</span
-                                            >
-                                        {/if}
-                                        {#if entry.data.damage_dice}
-                                            <span
-                                                >Damage: {entry.data
-                                                    .damage_dice}</span
-                                            >
-                                        {/if}
-                                        <span
-                                            >Source: {entry.source?.name ??
-                                                "Unknown"}</span
+                                        <div
+                                            class="flex space-x-4 text-xs text-gray-400 italic"
                                         >
+                                            {#if entry.data.weight}
+                                                <span
+                                                    >Weight: {entry.data
+                                                        .weight} lb</span
+                                                >
+                                            {/if}
+                                            {#if entry.data.damage_dice}
+                                                <span
+                                                    >Damage: {entry.data
+                                                        .damage_dice}</span
+                                                >
+                                            {/if}
+                                            <span
+                                                >Source: {entry.source?.name ??
+                                                    "Unknown"}</span
+                                            >
+                                        </div>
+                                        <div class="flex gap-2">
+                                            <button
+                                                on:click={() =>
+                                                    startEdit(entry)}
+                                                class="text-xs font-bold text-blue-600 hover:text-blue-800 border border-blue-200 hover:border-blue-400 rounded px-3 py-1 transition-colors"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                on:click={() =>
+                                                    handleDelete(entry)}
+                                                class="text-xs font-bold text-red-600 hover:text-red-800 border border-red-200 hover:border-red-400 rounded px-3 py-1 transition-colors"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             {:else}
