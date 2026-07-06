@@ -44,4 +44,6 @@ class CompendiumEntry(Base):
     # Composite indexes for common query patterns
     __table_args__ = (
         Index('idx_system_type', 'system', 'entry_type'),
+        # GIN index on JSONB data (PostgreSQL only; ignored on other dialects)
+        Index('idx_compendium_data_gin', 'data', postgresql_using='gin'),
     )
