@@ -1,5 +1,8 @@
-from typing import Any, List, Literal, Optional, Tuple
-from pydantic import Field
+import copy
+import re
+from typing import Annotated, Any, Dict, List, Literal, Optional, Tuple, Union
+from pydantic import AfterValidator, Field, create_model
+from pydantic_core import PydanticUndefined
 
 class FieldType:
     """Base class for all field types"""
@@ -248,6 +251,143 @@ class Markdown(FieldType):
         }
 
 
+def _item_annotation(field: FieldType):
+    """Turn a FieldType into an Annotated type usable inside List[...] /
+    row models, stripping any default so item-level constraints still apply."""
+    py_type, field_obj = field.to_pydantic_field()
+    field_obj = copy.deepcopy(field_obj)
+    field_obj.default = PydanticUndefined
+    return Annotated[py_type, field_obj]
+
+
+class ListOf(FieldType):
+    """Repeatable list of a single inner field type (which may itself be
+    composite, e.g. list_of(table(...)))"""
+
+    def __init__(self, item: FieldType, min_items: Optional[int] = None,
+                 max_items: Optional[int] = None, label: str = ""):
+        if not isinstance(item, FieldType):
+            raise ValueError("list_of requires a FieldType item")
+        self.item = item
+        self.min_items = min_items
+        self.max_items = max_items
+        self.label = label
+
+    def to_pydantic_field(self) -> Tuple[type, Any]:
+        constraints = {}
+        if self.min_items is not None:
+            constraints['min_length'] = self.min_items
+        if self.max_items is not None:
+            constraints['max_length'] = self.max_items
+        return (List[_item_annotation(self.item)], Field(**constraints))
+
+    def to_form_field(self) -> dict:
+        field = {
+            'type': 'list',
+            'item': self.item.to_form_field(),
+            'label': self.label,
+        }
+        if self.min_items is not None:
+            field['minItems'] = self.min_items
+        if self.max_items is not None:
+            field['maxItems'] = self.max_items
+        return field
+
+
+class Table(FieldType):
+    """Rows of typed columns (class level tables, rollable tables, ...).
+
+    Columns are given as a dict {name: FieldType} or list of (name, FieldType).
+    Every row must provide a value for each column unless the column's own
+    type is optional (e.g. compendium_link defaults to None).
+    """
+
+    def __init__(self, columns: Union[Dict[str, FieldType], List[Tuple[str, FieldType]]],
+                 min_rows: Optional[int] = None, max_rows: Optional[int] = None,
+                 label: str = ""):
+        items = list(columns.items()) if isinstance(columns, dict) else list(columns)
+        if not items:
+            raise ValueError("table requires at least one column")
+        for name, col in items:
+            if not isinstance(col, FieldType):
+                raise ValueError(f"table column '{name}' must be a FieldType")
+        self.columns = items
+        self.min_rows = min_rows
+        self.max_rows = max_rows
+        self.label = label
+        self._row_model = None
+
+    def row_model(self):
+        if self._row_model is None:
+            fields = {}
+            for name, col in self.columns:
+                py_type, field_obj = col.to_pydantic_field()
+                fields[name] = (py_type, field_obj)
+            self._row_model = create_model('TableRow', **fields)
+        return self._row_model
+
+    def to_pydantic_field(self) -> Tuple[type, Any]:
+        constraints = {}
+        if self.min_rows is not None:
+            constraints['min_length'] = self.min_rows
+        if self.max_rows is not None:
+            constraints['max_length'] = self.max_rows
+        return (List[self.row_model()], Field(**constraints))
+
+    def to_form_field(self) -> dict:
+        columns = []
+        for name, col in self.columns:
+            col_form = col.to_form_field()
+            col_form['name'] = name
+            columns.append(col_form)
+        field = {
+            'type': 'table',
+            'columns': columns,
+            'label': self.label,
+        }
+        if self.min_rows is not None:
+            field['minRows'] = self.min_rows
+        if self.max_rows is not None:
+            field['maxRows'] = self.max_rows
+        return field
+
+
+_DICE_EXPR_RE = re.compile(r"^\s*(\d*[dD]\d+|\d+)(\s*[+-]\s*(\d*[dD]\d+|\d+))*\s*$")
+_DICE_TERM_RE = re.compile(r"\d*[dD]\d+")
+
+
+def validate_dice_expression(value: str) -> str:
+    """Validate expressions like 'd20', '2d6+3', '1d8 + 2d4 - 1'."""
+    if not _DICE_EXPR_RE.match(value):
+        raise ValueError(f"Invalid dice expression: '{value}'")
+    terms = _DICE_TERM_RE.findall(value)
+    if not terms:
+        raise ValueError("Dice expression must contain at least one die term (e.g. 'd6')")
+    for term in terms:
+        count, faces = term.lower().split("d")
+        if count and int(count) < 1:
+            raise ValueError(f"Die count must be at least 1 in '{term}'")
+        if int(faces) < 1:
+            raise ValueError(f"Die must have at least 1 face in '{term}'")
+    return value.strip()
+
+
+class DiceExpression(FieldType):
+    """Validated dice expression string, e.g. '2d6+3'"""
+
+    def __init__(self, placeholder: str = "e.g. 2d6+3"):
+        self.placeholder = placeholder
+
+    def to_pydantic_field(self) -> Tuple[type, Any]:
+        return (Annotated[str, AfterValidator(validate_dice_expression)], Field())
+
+    def to_form_field(self) -> dict:
+        return {
+            'type': 'dice_expression',
+            'placeholder': self.placeholder,
+        }
+
+
 class EntryCategory(FieldType):
     """Enum field for entry categorization (container/definition/item)"""
     
@@ -299,3 +439,12 @@ def markdown(max_len: int = 10000, placeholder: str = "") -> Markdown:
 
 def entry_category() -> EntryCategory:
     return EntryCategory()
+
+def list_of(item: FieldType, min_items: int = None, max_items: int = None, label: str = "") -> ListOf:
+    return ListOf(item, min_items, max_items, label)
+
+def table(columns, min_rows: int = None, max_rows: int = None, label: str = "") -> Table:
+    return Table(columns, min_rows, max_rows, label)
+
+def dice_expression(placeholder: str = "e.g. 2d6+3") -> DiceExpression:
+    return DiceExpression(placeholder)

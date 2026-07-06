@@ -36,6 +36,7 @@ Session log for autonomous work through BACKLOG.md / ROADMAP.md. Newest entries 
 ### 2026-07-06 — Phase 2 in progress
 
 - **C-02**: `Compendium` container model (`compendiums` table: slug guid, name, description, system) + `compendium_guid` FK on entries (nullable — loose entries allowed). Migration `f3a1c9d40b17` backfills a `{system}-core` compendium per distinct system and assigns existing entries (verified on live PG: 11 entries → `d&d5.0-core`). New `/api/compendiums` CRUD (list includes entry_count; delete blocked with 409 while non-empty); entry create/PUT/PATCH accept `compendium_guid`; list API gains `compendium` filter; rename preserves membership; seeding assigns `{system}-core`. Games "subscribe" to compendiums when the Game model lands (U-03). 15 tests.
+- **S-04**: composite field types in `core/field_types.py` — `list_of(field)` (nests arbitrarily, min/max items, item constraints enforced via `Annotated`), `table(columns)` (dict or ordered tuple list of typed columns → generated row model; min/max rows; optional cells only when the column type itself is optional), `dice_expression` (regex + per-term validation: at least one die term, count/faces ≥ 1; plain "5" or "1+2" rejected). Form schemas: `{type: list, item: …}`, `{type: table, columns: […]}`, `{type: dice_expression}`. Nested validation errors surface readably through the F-06 envelope (`levels.0.level`). 40 tests incl. API round-trip with a class-style level table.
 
 ### 2026-07-06 — Phase 1 complete
 
