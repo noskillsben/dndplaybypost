@@ -62,3 +62,6 @@ frontend/.env.*
 
 # Docker
 .docker-clean
+
+# Claude Code local settings
+.claude/settings.local.json
