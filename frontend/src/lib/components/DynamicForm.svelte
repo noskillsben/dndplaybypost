@@ -1,5 +1,6 @@
 <script>
     import { onMount } from "svelte";
+    import { api } from "$lib/api.js";
 
     export let system;
     export let entryType;
@@ -12,17 +13,13 @@
     let error = null;
     let compendiumOptions = {};
 
-    const API_URL = "http://localhost:8000"; // Should come from env in a real setup
-
     onMount(async () => {
         try {
-            const response = await fetch(
-                `${API_URL}/api/schemas/${encodeURIComponent(
+            formSchema = await api.get(
+                `/api/schemas/${encodeURIComponent(
                     system
                 )}/${encodeURIComponent(entryType)}`
             );
-            if (!response.ok) throw new Error("Failed to load schema");
-            formSchema = await response.json();
 
             // Pre-populate formData with initialData or defaults
             formSchema.fields.forEach((field) => {
@@ -47,24 +44,17 @@
 
     async function fetchCompendiumOptions(fieldName, query) {
         try {
-            let url;
+            let params;
 
             if (query.startsWith("parent:")) {
                 // Query by parent GUID: "parent:d&d5.0-basic-rule-damage-types"
-                const parentGuid = query.substring(7); // Remove "parent:" prefix
-                url = `${API_URL}/api/compendium/?parent_guid=${encodeURIComponent(
-                    parentGuid
-                )}`;
+                params = { parent_guid: query.substring(7) };
             } else {
                 // Query by GUID prefix: "d&d5.0-basic-rule-damage-types-*"
-                const guidPrefix = query.replace(/\*$/, ""); // Remove trailing '*'
-                url = `${API_URL}/api/compendium/?guid_prefix=${encodeURIComponent(
-                    guidPrefix
-                )}`;
+                params = { guid_prefix: query.replace(/\*$/, "") };
             }
 
-            const response = await fetch(url);
-            const data = await response.json();
+            const data = await api.get("/api/compendium/", params);
             compendiumOptions[fieldName] = data.entries;
         } catch (e) {
             console.error(`Failed to fetch options for ${fieldName}:`, e);
@@ -74,11 +64,10 @@
     async function fetchParentOptions(fieldName) {
         try {
             // Fetch all entries of the same type for parent selection
-            const url = `${API_URL}/api/compendium/?system=${encodeURIComponent(
-                system
-            )}&entry_type=${encodeURIComponent(entryType)}`;
-            const response = await fetch(url);
-            const data = await response.json();
+            const data = await api.get("/api/compendium/", {
+                system,
+                entry_type: entryType,
+            });
             compendiumOptions[fieldName] = data.entries;
         } catch (e) {
             console.error(

@@ -1,6 +1,7 @@
 <script>
     import { onMount } from "svelte";
     import DynamicForm from "$lib/components/DynamicForm.svelte";
+    import { api } from "$lib/api.js";
 
     let systems = [];
     let selectedSystem = null;
@@ -16,12 +17,9 @@
     let isHomebrew = true;
     let sourceField = "User Homebrew";
 
-    const API_URL = "http://localhost:8000";
-
     onMount(async () => {
         try {
-            const res = await fetch(`${API_URL}/api/schemas/systems`);
-            const data = await res.json();
+            const data = await api.get("/api/schemas/systems");
             systems = data.systems;
         } catch (e) {
             console.error("Failed to load systems", e);
@@ -34,10 +32,9 @@
         entries = [];
         showCreateForm = false;
         try {
-            const res = await fetch(
-                `${API_URL}/api/schemas/${encodeURIComponent(system)}/types`,
+            const data = await api.get(
+                `/api/schemas/${encodeURIComponent(system)}/types`,
             );
-            const data = await res.json();
             types = data.types;
         } catch (e) {
             console.error("Failed to load types", e);
@@ -53,15 +50,11 @@
     async function fetchEntries() {
         loading = true;
         try {
-            const url = new URL(`${API_URL}/api/compendium/`);
-            if (selectedSystem)
-                url.searchParams.append("system", selectedSystem);
-            if (selectedType)
-                url.searchParams.append("entry_type", selectedType);
-            if (search) url.searchParams.append("search", search);
-
-            const res = await fetch(url);
-            const data = await res.json();
+            const data = await api.get("/api/compendium/", {
+                system: selectedSystem,
+                entry_type: selectedType,
+                search,
+            });
             entries = data.entries;
         } catch (e) {
             console.error("Failed to load entries", e);
@@ -81,36 +74,26 @@
                 customGuid = `${selectedSystem}-${selectedType}-${guidSuffix.trim()}`;
             }
 
-            const res = await fetch(`${API_URL}/api/compendium/`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    system: selectedSystem,
-                    entry_type: selectedType,
-                    name: formData.name,
-                    data: formData,
-                    parent_guid: parent_guid,
-                    source: sourceField,
-                    homebrew: isHomebrew,
-                    ...(customGuid && { guid: customGuid }), // Only include if provided
-                }),
+            await api.post("/api/compendium/", {
+                system: selectedSystem,
+                entry_type: selectedType,
+                name: formData.name,
+                data: formData,
+                parent_guid: parent_guid,
+                source: { name: sourceField },
+                homebrew: isHomebrew,
+                ...(customGuid && { guid: customGuid }), // Only include if provided
             });
 
-            if (res.ok) {
-                showCreateForm = false;
-                // Reset form metadata
-                guidSuffix = "";
-                isHomebrew = true;
-                sourceField = "User Homebrew";
-                await fetchEntries();
-            } else {
-                const err = await res.json();
-                alert(`Error: ${err.detail}`);
-            }
+            showCreateForm = false;
+            // Reset form metadata
+            guidSuffix = "";
+            isHomebrew = true;
+            sourceField = "User Homebrew";
+            await fetchEntries();
         } catch (e) {
             console.error("Failed to create entry", e);
+            alert(`Error: ${e.message}`);
         }
     }
 
@@ -420,7 +403,10 @@
                                                     .damage_dice}</span
                                             >
                                         {/if}
-                                        <span>Source: {entry.source}</span>
+                                        <span
+                                            >Source: {entry.source?.name ??
+                                                "Unknown"}</span
+                                        >
                                     </div>
                                 </div>
                             {:else}
