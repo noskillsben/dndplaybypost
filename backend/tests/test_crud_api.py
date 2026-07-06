@@ -37,7 +37,7 @@ class TestPut:
             "data": {"name": "Fire Bolt", "level": 99},
         })
         assert resp.status_code == 400
-        assert "level" in resp.json()["detail"]
+        assert "level" in resp.json()["error"]["message"]
 
     async def test_missing_required_field_rejected(self, client):
         entry = await create_spell(client)

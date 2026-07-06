@@ -3,6 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from core.config import get_settings
+from core.errors import register_exception_handlers
 
 # api imports, core of the application
 from api import schemas, compendium, systems
@@ -11,6 +12,8 @@ from api.routes import actors
 settings = get_settings()
 
 app = FastAPI(title="D&D Platform API v2.0")
+
+register_exception_handlers(app)
 
 # CORS configuration
 app.add_middleware(

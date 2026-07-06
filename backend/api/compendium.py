@@ -9,7 +9,9 @@ from api.schemas import SCHEMA_REGISTRY
 from core import guids as guid_service
 import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
+
+from core.errors import schema_validation_error
 
 router = APIRouter(prefix="/api/compendium", tags=["compendium"])
 
@@ -70,8 +72,8 @@ def _validate_data(system: str, entry_type: str, data: Dict[str, Any]) -> Dict[s
     Model = SCHEMA_REGISTRY[system][entry_type].model()
     try:
         return Model(**data).model_dump()
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
+    except ValidationError as e:
+        raise schema_validation_error(e)
 
 @router.get("/")
 async def list_entries(
@@ -137,24 +139,10 @@ async def create_entry(
         if not parent_check.scalar_one_or_none():
             raise HTTPException(status_code=400, detail="Parent entry not found")
     
-    # 2. Validate against schema
-    if payload.system not in SCHEMA_REGISTRY:
-        raise HTTPException(status_code=400, detail="Invalid system")
-    if payload.entry_type not in SCHEMA_REGISTRY[payload.system]:
-        raise HTTPException(status_code=400, detail="Invalid entry type")
-    
-    schema_def = SCHEMA_REGISTRY[payload.system][payload.entry_type]
-    Model = schema_def.model()
-    
-    try:
-        # Ensure name is in data for validation if the schema expects it
-        data_to_validate = payload.data.copy()
-        if "name" not in data_to_validate:
-            data_to_validate["name"] = payload.name
-            
-        validated = Model(**data_to_validate)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Validation error: {str(e)}")
+    # 2. Validate against schema (name injected if the payload didn't repeat it)
+    data_to_validate = payload.data.copy()
+    data_to_validate.setdefault("name", payload.name)
+    validated_data = _validate_data(payload.system, payload.entry_type, data_to_validate)
     
     # 3. Generate or use custom GUID
     if payload.guid:
@@ -175,7 +163,7 @@ async def create_entry(
         system=payload.system,
         entry_type=payload.entry_type,
         name=payload.name,
-        data=validated.model_dump(),
+        data=validated_data,
         parent_guid=payload.parent_guid,
         homebrew=payload.homebrew,
         source=payload.source
