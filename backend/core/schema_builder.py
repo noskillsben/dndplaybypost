@@ -99,7 +99,7 @@ class ObjectRegistration:
         
         Args:
             guid: Short GUID (local part only), e.g., "slashing"
-            source: Optional source info, e.g., {"name": "PHB", "page": 196}
+            source: Optional source info, e.g., {"name": "PHB", "page": 196, link:"https://www.dndbeyond.com/sources/dnd/phb-2014"}
             **field_values: Field values matching this schema
             
         Returns:

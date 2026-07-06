@@ -63,16 +63,29 @@ character_class.add_field("primary_ability", ft.short_text(50), placeholder="Str
 # Seed data - foundational entries created on startup using Pythonic API
 # ---------------------------------------------------------------------
 
-# 1. Damage Types
+# 1. Beyond 1rst level 
 # Note: Source is applied to all of these for brevity, could be per-item
-phb_source = {"name": "PHB"}
+srd_source = {"name": "SRD", "link": "https://media.wizards.com/2016/downloads/DND/SRD-OGL_V5.1.pdf", "page": 1 }
+
+beyond_1rst_level = rule(
+    guid="beyond-1rst-level",
+    name="Beyond 1rst Level",
+    description="### Beyond 1rst Level ###\n\nAs your character goes on adventures and overcomes challenges, he or she gains experience,  represented by experience points. A character who  reaches a specified experience point total advances  in capability. This advancement is called gaining a  level. When your character gains a level, his or her class  often grants additional features, as detailed in the  class description. Some of these features allow you  to increase your ability scores, either increasing two  scores by 1 each or increasing one score by 2. You  can’t increase an ability score above 20. In addition,  every character’s proficiency bonus increases at  certain levels. Each time you gain a level, you gain 1 additional  Hit Die. Roll that Hit Die, add your Constitution  modifier to the roll, and add the total to your hit  point maximum. Alternatively, you can use the fixed  value shown in your class entry, which is the average  result of the die roll (rounded up). When your Constitution modifier increases by 1,  your hit point maximum increases by 1 for each level  you have attained. For example, if your 7th-­‐‑level  fighter has a Constitution score of 17, when he  reaches 8th level, he increases his Constitution score  from 17 to 18, thus increasing his Constitution  modifier from +3 to +4. His hit point maximum then  increases by 8. The Character Advancement table summarizes the  XP you need to advance in levels from level 1  through level 20, and the proficiency bonus for a  character of that level. Consult the information in  your character’s class description to see what other  improvements you gain at each level.",
+    entry_category="container",
+    source={**srd_source, "page": 56}
+)
+
+
+
+
+
 
 damage_types = rule(
     guid="damage-types",
     name="Damage Types",
     description="# Damage Types\n\nThe various types of damage that can be dealt in D&D 5e.",
     entry_category="container",
-    source=phb_source
+    source=srd_source
 )
 
 slashing = rule(
@@ -81,7 +94,7 @@ slashing = rule(
     parent_guid=damage_types.guid,
     description="Slashing damage is dealt by swords, axes, and claws.",
     entry_category="definition",
-    source=phb_source
+    source=srd_source
 )
 
 bludgeoning = rule(
@@ -90,7 +103,7 @@ bludgeoning = rule(
     parent_guid=damage_types.guid,
     description="Bludgeoning damage is dealt by blunt force from hammers, clubs, and falling.",
     entry_category="definition",
-    source=phb_source
+    source=srd_source
 )
 
 piercing = rule(
@@ -99,7 +112,7 @@ piercing = rule(
     parent_guid=damage_types.guid,
     description="Piercing damage is dealt by arrows, spears, and fangs.",
     entry_category="definition",
-    source=phb_source
+    source=srd_source
 )
 
 # 2. Equipment Hierarchy
@@ -108,7 +121,7 @@ equipment = rule(
     name="Equipment",
     description="# Equipment\n\nAdventurers rely on various types of equipment to survive and thrive.",
     entry_category="container",
-    source=phb_source
+    source=srd_source
 )
 
 weapons = rule(
@@ -117,7 +130,7 @@ weapons = rule(
     parent_guid=equipment.guid,
     description="## Weapons\n\nWeapons are categorized by their complexity and fighting style.",
     entry_category="container",
-    source=phb_source
+    source=srd_source
 )
 
 weapon_masteries = rule(
@@ -126,7 +139,7 @@ weapon_masteries = rule(
     parent_guid=weapons.guid,
     description="### Weapon Masteries\n\nWeapon proficiency categories.",
     entry_category="container",
-    source=phb_source
+    source=srd_source
 )
 
 simple_melee = rule(
@@ -135,7 +148,7 @@ simple_melee = rule(
     parent_guid=weapon_masteries.guid,
     description="Simple melee weapons require minimal training and include clubs, daggers, and quarterstaffs.",
     entry_category="definition",
-    source=phb_source
+    source=srd_source
 )
 
 simple_ranged = rule(
@@ -144,7 +157,7 @@ simple_ranged = rule(
     parent_guid=weapon_masteries.guid,
     description="Simple ranged weapons include light crossbows and shortbows.",
     entry_category="definition",
-    source=phb_source
+    source=srd_source
 )
 
 martial_melee = rule(
@@ -153,7 +166,7 @@ martial_melee = rule(
     parent_guid=weapon_masteries.guid,
     description="Martial melee weapons require specialized training and include longswords, greatswords, and glaives.",
     entry_category="definition",
-    source=phb_source
+    source=srd_source
 )
 
 martial_ranged = rule(
@@ -162,7 +175,7 @@ martial_ranged = rule(
     parent_guid=weapon_masteries.guid,
     description="Martial ranged weapons include longbows and heavy crossbows.",
     entry_category="definition",
-    source=phb_source
+    source=srd_source
 )
 
 # Collect all seed entries
