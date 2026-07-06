@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Query
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Optional, List, Dict, Any
@@ -79,31 +80,43 @@ async def list_entries(
     search: Optional[str] = None,
     homebrew: Optional[bool] = None,
     parent_guid: Optional[str] = Query(None, description="Filter by parent GUID, use 'null' for top-level entries"),
+    guid_prefix: Optional[str] = Query(None, description="Filter by GUID prefix, e.g. 'd&d5.0-rule-'"),
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db)
 ):
-    """List compendium entries with filters"""
-    stmt = select(CompendiumEntry)
-    
+    """List compendium entries with filters and pagination"""
+    filters = []
+
     if system:
-        stmt = stmt.where(CompendiumEntry.system == system)
+        filters.append(CompendiumEntry.system == system)
     if entry_type:
-        stmt = stmt.where(CompendiumEntry.entry_type == entry_type)
+        filters.append(CompendiumEntry.entry_type == entry_type)
     if search:
-        stmt = stmt.where(CompendiumEntry.name.ilike(f"%{search}%"))
+        filters.append(CompendiumEntry.name.ilike(f"%{search}%"))
     if homebrew is not None:
-        stmt = stmt.where(CompendiumEntry.homebrew == homebrew)
+        filters.append(CompendiumEntry.homebrew == homebrew)
     if parent_guid is not None:
         if parent_guid.lower() == "null":
-            stmt = stmt.where(CompendiumEntry.parent_guid.is_(None))
+            filters.append(CompendiumEntry.parent_guid.is_(None))
         else:
-            stmt = stmt.where(CompendiumEntry.parent_guid == parent_guid)
-    
-    # Order by name
-    stmt = stmt.order_by(CompendiumEntry.name)
-    
+            filters.append(CompendiumEntry.parent_guid == parent_guid)
+    if guid_prefix:
+        filters.append(CompendiumEntry.guid.startswith(guid_prefix, autoescape=True))
+
+    count_stmt = select(func.count()).select_from(CompendiumEntry).where(*filters)
+    total = (await db.execute(count_stmt)).scalar_one()
+
+    stmt = (
+        select(CompendiumEntry)
+        .where(*filters)
+        .order_by(CompendiumEntry.name)
+        .limit(limit)
+        .offset(offset)
+    )
     result = await db.execute(stmt)
     entries = result.scalars().all()
-    return {"entries": entries}
+    return {"entries": entries, "total": total, "limit": limit, "offset": offset}
 
 @router.get("/{guid}")
 async def get_entry(guid: str, db: AsyncSession = Depends(get_db)):
