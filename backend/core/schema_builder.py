@@ -35,18 +35,22 @@ class ObjectRegistration:
         
         # Build field definitions for Pydantic
         pydantic_fields = {}
+        from pydantic_core import PydanticUndefined
         for field_name, field_def in self.fields.items():
             py_type, field_obj = field_def['type'].to_pydantic_field()
             
-            # If not required, ensure it's optional in Pydantic
             if not field_def['required']:
+                # If not required, ensure it's optional in Pydantic
                 if not str(py_type).startswith('typing.Optional'):
                     py_type = Optional[py_type]
                 
                 # In Pydantic v2, we ensure the Field object has default=None if it doesn't already
-                from pydantic_core import PydanticUndefined
                 if hasattr(field_obj, 'default') and field_obj.default == PydanticUndefined:
                     field_obj.default = None
+            else:
+                # Required fields must not carry an implicit default from the field type
+                if hasattr(field_obj, 'default'):
+                    field_obj.default = PydanticUndefined
             
             pydantic_fields[field_name] = (py_type, field_obj)
         

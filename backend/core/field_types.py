@@ -1,4 +1,4 @@
-from typing import Any, Tuple, Optional
+from typing import Any, List, Literal, Optional, Tuple
 from pydantic import Field
 
 class FieldType:
@@ -63,7 +63,7 @@ class Integer(FieldType):
             constraints['ge'] = self.min_val
         if self.max_val is not None:
             constraints['le'] = self.max_val
-        return (int, Field(default=None, **constraints))
+        return (int, Field(**constraints))
     
     def to_form_field(self) -> dict:
         field = {'type': 'number', 'step': 1}
@@ -72,6 +72,69 @@ class Integer(FieldType):
         if self.max_val is not None:
             field['max'] = self.max_val
         return field
+
+
+class Decimal(FieldType):
+    """Decimal/float number input"""
+    
+    def __init__(self, min_val: Optional[float] = None,
+                 max_val: Optional[float] = None,
+                 step: Optional[float] = None):
+        self.min_val = min_val
+        self.max_val = max_val
+        self.step = step
+    
+    def to_pydantic_field(self) -> Tuple[type, Any]:
+        constraints = {}
+        if self.min_val is not None:
+            constraints['ge'] = self.min_val
+        if self.max_val is not None:
+            constraints['le'] = self.max_val
+        return (float, Field(**constraints))
+    
+    def to_form_field(self) -> dict:
+        field = {'type': 'number', 'step': self.step if self.step is not None else 'any'}
+        if self.min_val is not None:
+            field['min'] = self.min_val
+        if self.max_val is not None:
+            field['max'] = self.max_val
+        return field
+
+
+class Boolean(FieldType):
+    """Checkbox input"""
+    
+    def __init__(self, label: str = ""):
+        self.label = label
+    
+    def to_pydantic_field(self) -> Tuple[type, Any]:
+        return (bool, Field())
+    
+    def to_form_field(self) -> dict:
+        return {
+            'type': 'checkbox',
+            'label': self.label
+        }
+
+
+class Select(FieldType):
+    """Dropdown with a fixed list of options"""
+    
+    def __init__(self, options: List[str], label: str = ""):
+        if not options:
+            raise ValueError("Select requires at least one option")
+        self.options = list(options)
+        self.label = label
+    
+    def to_pydantic_field(self) -> Tuple[type, Any]:
+        return (Literal[tuple(self.options)], Field())
+    
+    def to_form_field(self) -> dict:
+        return {
+            'type': 'select',
+            'options': self.options,
+            'label': self.label
+        }
 
 
 class CompendiumLink(FieldType):
@@ -164,6 +227,15 @@ def long_text(max_len: int = 5000, placeholder: str = "") -> LongText:
 
 def integer(min_val: int = None, max_val: int = None) -> Integer:
     return Integer(min_val, max_val)
+
+def decimal(min_val: float = None, max_val: float = None, step: float = None) -> Decimal:
+    return Decimal(min_val, max_val, step)
+
+def boolean(label: str = "") -> Boolean:
+    return Boolean(label)
+
+def select(options: List[str], label: str = "") -> Select:
+    return Select(options, label)
 
 def compendium_link(query: str, label: str = "Select...") -> CompendiumLink:
     return CompendiumLink(query, label)
