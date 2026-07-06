@@ -4,8 +4,8 @@ Session log for autonomous work through BACKLOG.md / ROADMAP.md. Newest entries 
 
 ## Questions for Ben
 
-- **Two Docker daemons are running this project simultaneously.** Your machine has (a) Docker Desktop (what `docker`/`docker compose`/`make` talk to via `/var/run/docker.sock`, and what this session builds/tests against) and (b) a native WSL `dockerd` (systemd service, root-owned) that has been running a *second* dnd stack since this morning. The native stack owns host ports 8000/3000/5432/8080, so **anything you open at `localhost:8000/3000` is served by the native stack, not the Docker Desktop one** — they share the live-reloaded `./backend` bind mount but use *different postgres volumes*. I couldn't stop the native daemon (no passwordless sudo), so I brought its DB up to date instead (ran `alembic upgrade head` against `127.0.0.1:5432`); both stacks now work. Which one is canonical? Recommend picking one — e.g. `sudo systemctl disable --now docker docker.socket` to drop the native one, or disable Docker Desktop WSL integration to keep the native one.
-- Actors API mixes sync `Session`/`db.query` with async `get_db` — will fail at request time (flagged in Phase 0, still open, out of Phase 1 scope).
+- ~~Two Docker daemons~~ — resolved 2026-07-06: native dockerd disabled, Docker Desktop is canonical.
+- ~~Actors API sync/async mismatch~~ — resolved 2026-07-06: router unmounted from `main.py`; file kept for EPIC 7.
 - Persisted postgres volumes still hold seed entries with old `{"name": "PHB"}` sources; seeding is create-or-ignore, so SRD source edits only apply to fresh DBs.
 
 ## Log
@@ -26,6 +26,12 @@ Session log for autonomous work through BACKLOG.md / ROADMAP.md. Newest entries 
 - Decisions Ben may want to review:
   - Kept the actors API as-is, but note it mixes sync `Session`/`db.query` with the async `get_db` dependency — it will fail at request time. Not in Phase 0/1 scope; flagged for whenever actors work resumes (EPIC 7 revisit).
   - The persisted Postgres volume still holds seed entries with the old `{"name": "PHB"}` sources; seeding is create-or-ignore, so the SRD source edits only apply to fresh databases.
+
+### 2026-07-06 — Housekeeping (Ben's instructions, start of Phase 2 session)
+
+- Ben resolved the dual-daemon issue (native dockerd disabled); Docker Desktop stack is canonical. `dnd52.py` deletion was intentional pre-reboot cleanup — not restored.
+- Unmounted the broken actors router from `main.py` (sync/async DB mismatch); `api/routes/actors.py` kept on disk, returns in EPIC 7.
+- Phase 2 order per Ben: C-02, S-04, S-05, C-06, S-06, W-02; exit test D-12 (Lasers & Feelings via in-app template editor). Design constraint: templates are data, editable in-browser; `schemas/systems/` Python definitions become seed data, not source of truth.
 
 ### 2026-07-06 — Phase 1 complete
 

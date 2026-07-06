@@ -7,7 +7,6 @@ from core.errors import register_exception_handlers
 
 # api imports, core of the application
 from api import schemas, compendium, systems
-from api.routes import actors
 
 settings = get_settings()
 
@@ -28,7 +27,6 @@ app.add_middleware(
 app.include_router(schemas.router)
 app.include_router(compendium.router)
 app.include_router(systems.router)
-app.include_router(actors.router)
 
 @app.get("/")
 async def root():
