@@ -137,13 +137,37 @@ class Select(FieldType):
         }
 
 
+def parse_link_query(query: str) -> dict:
+    """
+    Translate a compendium link query string into list-API filter params.
+    
+    Supported forms:
+        "parent:<guid>"      -> {"parent_guid": <guid>}
+        "type:<entry_type>"  -> {"entry_type": <entry_type>}
+        "tag:<tag>"          -> {"tag": <tag>}
+        "prefix:<prefix>"    -> {"guid_prefix": <prefix>}
+        "<prefix>-*"         -> {"guid_prefix": <prefix>}  (legacy form)
+    """
+    if not query:
+        return {}
+    for prefix, param in (("parent:", "parent_guid"),
+                          ("type:", "entry_type"),
+                          ("tag:", "tag"),
+                          ("prefix:", "guid_prefix")):
+        if query.startswith(prefix):
+            return {param: query[len(prefix):]}
+    # Legacy glob form: "d&d5.0-rule-*"
+    return {"guid_prefix": query[:-1] if query.endswith("*") else query}
+
+
 class CompendiumLink(FieldType):
-    """Dropdown that links to compendium entries"""
+    """Dropdown that links to a single compendium entry"""
     
     def __init__(self, query: str, label: str = "Select..."):
         """
         Args:
-            query: GUID pattern to match, e.g., "d&d5.0-basic-damage-type-*"
+            query: Link query, e.g. "parent:d&d5.0-rule-damage-types",
+                   "type:item", "prefix:d&d5.0-rule-" (see parse_link_query)
             label: Default label for the dropdown
         """
         self.query = query
@@ -156,6 +180,30 @@ class CompendiumLink(FieldType):
     def to_form_field(self) -> dict:
         return {
             'type': 'compendium_link',
+            'query': self.query,
+            'label': self.label
+        }
+
+
+class CompendiumLinkList(FieldType):
+    """Multi-select that links to several compendium entries"""
+    
+    def __init__(self, query: str, label: str = "Select..."):
+        """
+        Args:
+            query: Link query (see parse_link_query)
+            label: Default label for the multi-select
+        """
+        self.query = query
+        self.label = label
+    
+    def to_pydantic_field(self) -> Tuple[type, Any]:
+        # Store as a list of GUID strings
+        return (List[str], Field())
+    
+    def to_form_field(self) -> dict:
+        return {
+            'type': 'compendium_link_list',
             'query': self.query,
             'label': self.label
         }
@@ -239,6 +287,9 @@ def select(options: List[str], label: str = "") -> Select:
 
 def compendium_link(query: str, label: str = "Select...") -> CompendiumLink:
     return CompendiumLink(query, label)
+
+def compendium_link_list(query: str, label: str = "Select...") -> CompendiumLinkList:
+    return CompendiumLinkList(query, label)
 
 def parent_link(label: str = "Parent Entry") -> ParentLink:
     return ParentLink(label)

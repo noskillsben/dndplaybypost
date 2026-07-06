@@ -24,11 +24,22 @@
             // Pre-populate formData with initialData or defaults
             formSchema.fields.forEach((field) => {
                 if (!(field.name in formData)) {
-                    formData[field.name] = field.type === "number" ? null : "";
+                    if (field.type === "number") {
+                        formData[field.name] = null;
+                    } else if (field.type === "compendium_link_list") {
+                        formData[field.name] = [];
+                    } else if (field.type === "checkbox") {
+                        formData[field.name] = false;
+                    } else {
+                        formData[field.name] = "";
+                    }
                 }
 
                 // If it's a compendium link or parent link, fetch options
-                if (field.type === "compendium_link") {
+                if (
+                    field.type === "compendium_link" ||
+                    field.type === "compendium_link_list"
+                ) {
                     fetchCompendiumOptions(field.name, field.query);
                 } else if (field.type === "parent_link") {
                     fetchParentOptions(field.name);
@@ -42,19 +53,26 @@
         }
     });
 
+    // Mirrors backend core/field_types.py parse_link_query
+    function parseLinkQuery(query) {
+        if (!query) return {};
+        if (query.startsWith("parent:"))
+            return { parent_guid: query.substring(7) };
+        if (query.startsWith("type:"))
+            return { system, entry_type: query.substring(5) };
+        if (query.startsWith("tag:")) return { tag: query.substring(4) };
+        if (query.startsWith("prefix:"))
+            return { guid_prefix: query.substring(7) };
+        // Legacy glob form: "d&d5.0-rule-*"
+        return { guid_prefix: query.replace(/\*$/, "") };
+    }
+
     async function fetchCompendiumOptions(fieldName, query) {
         try {
-            let params;
-
-            if (query.startsWith("parent:")) {
-                // Query by parent GUID: "parent:d&d5.0-basic-rule-damage-types"
-                params = { parent_guid: query.substring(7) };
-            } else {
-                // Query by GUID prefix: "d&d5.0-basic-rule-damage-types-*"
-                params = { guid_prefix: query.replace(/\*$/, "") };
-            }
-
-            const data = await api.get("/api/compendium/", params);
+            const data = await api.get(
+                "/api/compendium/",
+                parseLinkQuery(query),
+            );
             compendiumOptions[fieldName] = data.entries;
         } catch (e) {
             console.error(`Failed to fetch options for ${fieldName}:`, e);
@@ -80,11 +98,22 @@
     function handleSubmit(e) {
         e.preventDefault();
         if (onSubmit) {
-            // Prepare data (convert numbers if needed)
+            // Prepare data (convert numbers, empty selections -> null)
             const cleanData = { ...formData };
             formSchema.fields.forEach((field) => {
-                if (field.type === "number" && cleanData[field.name] !== null) {
-                    cleanData[field.name] = Number(cleanData[field.name]);
+                const value = cleanData[field.name];
+                if (field.type === "number") {
+                    cleanData[field.name] =
+                        value === null || value === ""
+                            ? null
+                            : Number(value);
+                } else if (
+                    ["compendium_link", "parent_link", "select"].includes(
+                        field.type,
+                    ) &&
+                    value === ""
+                ) {
+                    cleanData[field.name] = null;
                 }
             });
             onSubmit(cleanData);
@@ -180,6 +209,42 @@
                             {/if}
                         </select>
                     </div>
+                {:else if field.type === "compendium_link_list"}
+                    <div class="relative">
+                        <select
+                            id={field.name}
+                            multiple
+                            bind:value={formData[field.name]}
+                            required={field.required}
+                            size="5"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                            {#if compendiumOptions[field.name]}
+                                {#each compendiumOptions[field.name] as option}
+                                    <option value={option.guid}
+                                        >{option.name} ({option.guid})</option
+                                    >
+                                {/each}
+                            {/if}
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">
+                            {field.label} — hold Ctrl/Cmd to select multiple
+                        </p>
+                    </div>
+                {:else if field.type === "checkbox"}
+                    <label class="flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            id={field.name}
+                            bind:checked={formData[field.name]}
+                            class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        {#if field.label}
+                            <span class="ml-2 text-sm text-gray-700"
+                                >{field.label}</span
+                            >
+                        {/if}
+                    </label>
                 {:else if field.type === "parent_link"}
                     <div class="relative">
                         <select
