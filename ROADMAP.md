@@ -3,11 +3,25 @@
 **Last updated:** 2026-07-06
 **Companion document:** BACKLOG.md (item IDs referenced below)
 
+**Status tracking:** when a phase's exit criteria all pass, mark it `✅ COMPLETE (date)` in its heading and tick the milestone table. Item-level ticks live in BACKLOG.md.
+
+## Phase checklist
+
+- [x] Phase 0 — Make it run (2026-07-06)
+- [x] Phase 1 — Schema engine v1 (2026-07-06)
+- [ ] Phase 2 — Schema engine v2: composite fields + template editor
+- [ ] Phase 3 — D&D 5e content + import/export
+- [ ] Phase 4 — Users, GMs, sessions
+- [ ] Phase 5 — Module / adventure builder
+- [ ] Phase 6 — Characters
+- [ ] Phase 7 — Play-by-post gameplay
+- [ ] Phase 8 — MVP hardening & release
+
 Phases are sequential because each one's exit criteria de-risk the next. Durations are rough relative weights at hobbyist pace — expect the character phase to be the long one. **Rule: don't start a phase until the previous phase's exit criteria pass.** That's the discipline that prevents the over-engineering spiral from iteration 1.
 
 ---
 
-## Phase 0 — Make it run (Foundation)
+## Phase 0 — Make it run (Foundation) — ✅ COMPLETE (2026-07-06)
 
 **Goal:** `docker compose up` gives a working, testable skeleton.
 **Backlog:** F-01, F-02, F-03, F-04, F-05, F-07, F-10
@@ -19,7 +33,7 @@ Today the compose file references a backend Dockerfile that doesn't exist and th
 - `pytest` green locally and in CI script.
 - No secrets or build artifacts tracked in git.
 
-## Phase 1 — Schema engine v1
+## Phase 1 — Schema engine v1 — ✅ COMPLETE (2026-07-06)
 
 **Goal:** Define an entry type in data, get validation + a working form from it.
 **Backlog:** S-01, S-02, S-03, C-01, C-03, C-04, C-05, F-06
@@ -120,16 +134,16 @@ Full end-to-end dogfood: run a real one-shot play-by-post with friends using onl
 
 ## Milestone map
 
-| Milestone | You can demo… | Phases |
-|---|---|---|
-| M1 "It boots" | Healthy stack, tests, CI | 0 |
-| M2 "Forms from data" | Entry types → validated forms | 1–2 |
-| M3 "The compendium" | Full SRD browsable, round-trip export | 3 |
-| M4 "Multiplayer shell" | GM + players in a game | 4 |
-| M5 "The adventure" | Authored module, rollable tables | 5 |
-| M6 "The character" | Wizard → sheet → level-up → export | 6 |
-| M7 "The game" | Live play-by-post with sheet-driven rolls | 7 |
-| **MVP** | A stranger self-hosts and runs a campaign | 8 |
+| Milestone | You can demo… | Phases | Status |
+|---|---|---|---|
+| M1 "It boots" | Healthy stack, tests, CI | 0 | ✅ 2026-07-06 |
+| M2 "Forms from data" | Entry types → validated forms | 1–2 | Phase 1 ✅, Phase 2 open |
+| M3 "The compendium" | Full SRD browsable, round-trip export | 3 | |
+| M4 "Multiplayer shell" | GM + players in a game | 4 | |
+| M5 "The adventure" | Authored module, rollable tables | 5 | |
+| M6 "The character" | Wizard → sheet → level-up → export | 6 | |
+| M7 "The game" | Live play-by-post with sheet-driven rolls | 7 | |
+| **MVP** | A stranger self-hosts and runs a campaign | 8 | |
 
 ## Standing risks & mitigations
 

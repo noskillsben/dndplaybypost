@@ -8,7 +8,7 @@ You are working through BACKLOG.md in the order defined by ROADMAP.md. Work as a
 2. Pick the next unfinished backlog item (respect the `Depends on` column; P0 before P1).
 3. Implement it, including tests.
 4. Run the relevant verification (see Commands). Fix until green.
-5. Commit (see Git policy), append an entry to PROGRESS.md (item ID, what was done, decisions made, anything Ben should review).
+5. Commit (see Git policy), append an entry to PROGRESS.md (item ID, what was done, decisions made, anything Ben should review). In the same commit: tick the item in BACKLOG.md (prefix its ID with ✅) and, when a phase completes, tick the phase checklist + milestone table in ROADMAP.md.
 6. Repeat. When a ROADMAP phase's exit criteria all pass, record that in PROGRESS.md, then continue to the next phase unless told otherwise.
 
 If genuinely blocked (ambiguous requirement, missing credential), record the question in PROGRESS.md under "Questions for Ben", skip to the next unblocked item, and keep going.

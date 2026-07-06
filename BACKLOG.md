@@ -12,6 +12,8 @@ The MVP is done when:
 3. **Module builder** — a person can use in-app tools to create an adventure/module from a compendium: places, events, NPCs, rollable tables, etc.
 4. **Play** — games can be played using compendiums + adventures or on the fly; characters can be imported and exported.
 
+**Status tracking:** when an item is complete, prefix its ID with ✅ (e.g. `✅ F-01`). Autonomous sessions must tick items here in the same commit that completes them.
+
 **Priorities:** `P0` = required for MVP · `P1` = strongly desired for MVP, cut if needed · `P2` = post-MVP.
 **Size:** S (≤1 day) · M (2–5 days) · L (1–3 weeks) · XL (3+ weeks). Sizes assume hobbyist pace with AI assistance; treat as relative weight, not promises.
 
@@ -23,16 +25,16 @@ The repo currently has docker-compose, `database.py`, an empty `core` package, a
 
 | ID | Item | Pri | Size | Depends on |
 |----|------|-----|------|------------|
-| F-01 | FastAPI app skeleton: `main.py`, router mounting, CORS from env, `/health` endpoint | P0 | S | — |
-| F-02 | Backend `Dockerfile` + `requirements.txt` (compose references a Dockerfile that doesn't exist — `docker compose up` fails today) | P0 | S | — |
-| F-03 | Alembic migrations wired to the async engine; initial migration | P0 | S | F-01 |
-| F-04 | Settings module (pydantic-settings) replacing raw `os.getenv`; fail fast on missing config | P0 | S | F-01 |
-| F-05 | Pytest harness + test database fixture; CI script (even just a bash script) that runs tests | P0 | M | F-03 |
-| F-06 | Consistent API error envelope + validation error formatting | P1 | S | F-01 |
-| F-07 | Frontend API client module (`$lib/api.js`): base URL from env (kill hardcoded `http://localhost:8000`), error handling, JSON helpers | P0 | S | — |
+| ✅ F-01 | FastAPI app skeleton: `main.py`, router mounting, CORS from env, `/health` endpoint | P0 | S | — |
+| ✅ F-02 | Backend `Dockerfile` + `requirements.txt` (compose references a Dockerfile that doesn't exist — `docker compose up` fails today) | P0 | S | — |
+| ✅ F-03 | Alembic migrations wired to the async engine; initial migration | P0 | S | F-01 |
+| ✅ F-04 | Settings module (pydantic-settings) replacing raw `os.getenv`; fail fast on missing config | P0 | S | F-01 |
+| ✅ F-05 | Pytest harness + test database fixture; CI script (even just a bash script) that runs tests | P0 | M | F-03 |
+| ✅ F-06 | Consistent API error envelope + validation error formatting | P1 | S | F-01 |
+| ✅ F-07 | Frontend API client module (`$lib/api.js`): base URL from env (kill hardcoded `http://localhost:8000`), error handling, JSON helpers | P0 | S | — |
 | F-08 | Seed/reset scripts: `make seed`, `make reset-db` (or bash equivalents) | P1 | S | F-03 |
 | F-09 | Structured logging (request logs, slow query logs); disable SQLAlchemy `echo=True` outside debug | P1 | S | F-04 |
-| F-10 | `.gitignore` hygiene: remove `.venv`, `.svelte-kit`, `.env` from the repo | P0 | S | — |
+| ✅ F-10 | `.gitignore` hygiene: remove `.venv`, `.svelte-kit`, `.env` from the repo | P0 | S | — |
 
 ## EPIC 1 — Schema Engine (the extensibility core)
 
@@ -40,9 +42,9 @@ The `ObjectRegistration` + field-types design from RESTART_PLAN.md. This is the 
 
 | ID | Item | Pri | Size | Depends on |
 |----|------|-----|------|------------|
-| S-01 | `FieldType` base + primitives: short_text, long_text, markdown, integer, decimal, boolean, select(options) | P0 | M | F-01 |
-| S-02 | `ObjectRegistration`: fields → Pydantic model (validation) + JSON form schema (frontend) | P0 | M | S-01 |
-| S-03 | Reference field types: `compendium_link` (query by type/tag/prefix), `compendium_link_list` (multi-select), `parent_link` | P0 | M | S-02 |
+| ✅ S-01 | `FieldType` base + primitives: short_text, long_text, markdown, integer, decimal, boolean, select(options) | P0 | M | F-01 |
+| ✅ S-02 | `ObjectRegistration`: fields → Pydantic model (validation) + JSON form schema (frontend) | P0 | M | S-01 |
+| ✅ S-03 | Reference field types: `compendium_link` (query by type/tag/prefix), `compendium_link_list` (multi-select), `parent_link` | P0 | M | S-02 |
 | S-04 | Composite field types: `list_of(field)` (e.g. list of damage entries), `table` (rows × typed columns — needed for class level tables, rollable tables), `dice_expression` (validated, e.g. "2d6+3") | P0 | L | S-02 |
 | S-05 | Choice/grant field types for character building: `choice(n, from)` (pick 2 skills…), `grant` (this race grants darkvision) — the machine-readable hooks the wizard consumes | P0 | L | S-03 |
 | S-06 | **Template-type editor UI**: create/edit entry *types* (their fields) in-app and store them as data, so users can define new content types without writing Python. Python-defined built-ins become seed data for this system | P0 | L | S-04 |
@@ -53,11 +55,11 @@ The `ObjectRegistration` + field-types design from RESTART_PLAN.md. This is the 
 
 | ID | Item | Pri | Size | Depends on |
 |----|------|-----|------|------------|
-| C-01 | `CompendiumEntry` model per RESTART_PLAN (guid PK, system, entry_type, name, JSONB data, homebrew, source, parent_guid, timestamps) + migration. Use real `JSONB`, add GIN index | P0 | S | F-03 |
+| ✅ C-01 | `CompendiumEntry` model per RESTART_PLAN (guid PK, system, entry_type, name, JSONB data, homebrew, source, parent_guid, timestamps) + migration. Use real `JSONB`, add GIN index | P0 | S | F-03 |
 | C-02 | `Compendium` container model: a named compendium (e.g. "D&D 5e 2014 SRD", "Ben's homebrew") owning entries; entries belong to a compendium, games subscribe to compendiums | P0 | M | C-01 |
-| C-03 | CRUD API: create/read/update/delete entries; validation against the entry-type template; PATCH support | P0 | M | S-02, C-01 |
-| C-04 | List/query API: filter by system, type, tag, homebrew, parent_guid, guid_prefix; text search on name; pagination | P0 | M | C-01 |
-| C-05 | GUID service: slugify names, collision handling, custom suffix support, rename = new guid + redirect record | P0 | S | C-01 |
+| ✅ C-03 | CRUD API: create/read/update/delete entries; validation against the entry-type template; PATCH support | P0 | M | S-02, C-01 |
+| ✅ C-04 | List/query API: filter by system, type, tag, homebrew, parent_guid, guid_prefix; text search on name; pagination (tag filter deferred to C-06) | P0 | M | C-01 |
+| ✅ C-05 | GUID service: slugify names, collision handling, custom suffix support, rename = new guid + redirect record | P0 | S | C-01 |
 | C-06 | Tags on entries + tag filtering (rarity, spell school, weapon category live better as tags/fields than as types) | P1 | S | C-04 |
 | C-07 | Cross-reference integrity: warn (not block) when deleting an entry that other entries link to; "what links here" endpoint | P1 | M | C-04 |
 | C-08 | Entry detail rendering: markdown rendering, resolved links (damage_type guid → clickable "Slashing"), stat-block style layout per type | P0 | M | C-04 |
