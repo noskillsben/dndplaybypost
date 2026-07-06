@@ -4,7 +4,9 @@ Session log for autonomous work through BACKLOG.md / ROADMAP.md. Newest entries 
 
 ## Questions for Ben
 
-(none yet)
+- **Two Docker daemons are running this project simultaneously.** Your machine has (a) Docker Desktop (what `docker`/`docker compose`/`make` talk to via `/var/run/docker.sock`, and what this session builds/tests against) and (b) a native WSL `dockerd` (systemd service, root-owned) that has been running a *second* dnd stack since this morning. The native stack owns host ports 8000/3000/5432/8080, so **anything you open at `localhost:8000/3000` is served by the native stack, not the Docker Desktop one** — they share the live-reloaded `./backend` bind mount but use *different postgres volumes*. I couldn't stop the native daemon (no passwordless sudo), so I brought its DB up to date instead (ran `alembic upgrade head` against `127.0.0.1:5432`); both stacks now work. Which one is canonical? Recommend picking one — e.g. `sudo systemctl disable --now docker docker.socket` to drop the native one, or disable Docker Desktop WSL integration to keep the native one.
+- Actors API mixes sync `Session`/`db.query` with async `get_db` — will fail at request time (flagged in Phase 0, still open, out of Phase 1 scope).
+- Persisted postgres volumes still hold seed entries with old `{"name": "PHB"}` sources; seeding is create-or-ignore, so SRD source edits only apply to fresh DBs.
 
 ## Log
 
@@ -24,3 +26,19 @@ Session log for autonomous work through BACKLOG.md / ROADMAP.md. Newest entries 
 - Decisions Ben may want to review:
   - Kept the actors API as-is, but note it mixes sync `Session`/`db.query` with the async `get_db` dependency — it will fail at request time. Not in Phase 0/1 scope; flagged for whenever actors work resumes (EPIC 7 revisit).
   - The persisted Postgres volume still holds seed entries with the old `{"name": "PHB"}` sources; seeding is create-or-ignore, so the SRD source edits only apply to fresh databases.
+
+### 2026-07-06 — Phase 1 complete
+
+- **S-01** (committed earlier): decimal/boolean/select primitive field types in schema builder + tests.
+- **S-02**: ObjectRegistration model + form generation tests.
+- **S-03**: reference fields — `compendium_link`/`compendium_link_list` query semantics (`parent_guid`, `guid_prefix`).
+- **C-01** (5e9c591): filled the empty `a029aec7731a` migration — `compendium.data` json→jsonb (`postgresql_using`) + GIN index `idx_compendium_data_gin`; model `__table_args__` matches; verified upgrade/downgrade round-trip on Postgres.
+- **C-05** (8c00d22): `core/guids.py` — slugify (unicode-folding), `generate_unique_guid` (-2/-3 collision suffixes, optional `guid_suffix` e.g. "srd"), `guid_redirects` table (migration `862d31ca28a0`) with rename → new guid + redirect; redirect chains flattened to one hop; children re-parented; GET/PUT/PATCH follow redirects. 21 tests.
+- **C-03** (aeaf1da): PUT (full replace) + PATCH (merge into `data`, re-validate merged doc; `model_fields_set` so `parent_guid` is clearable) endpoints; frontend compendium page gained Edit (prefilled DynamicForm → PUT) and Delete (confirm → DELETE). 15 tests.
+- **C-04** (24ddbc0): list endpoint — `guid_prefix` filter (escaped LIKE), `limit`(1–500)/`offset` pagination, response `{entries, total, limit, offset}`. 13 tests. Tag filtering deferred to C-06 (no tags field yet).
+- **F-06** (e110758): `core/errors.py` — every error is `{"error": {code, message, details}}`; schema validation returns 400 with per-field details and a readable message ("Validation failed — level: Input should be less than or equal to 9"); FastAPI request validation (422) wrapped in the same envelope. Frontend `ApiError` already parses it (F-07). 5 tests.
+- **Exit criteria** (verified over HTTP against the stack serving localhost after the dual-daemon fix, plus 108 backend / 9 frontend tests green, `make verify` from clean rebuild):
+  - damage-type + item templates seeded and listable ✅
+  - create → edit (PATCH) → list (paginated) → rename (old guid redirects) → delete, all through the API the UI uses ✅
+  - invalid data rejected server-side with readable, field-level errors in the envelope the form displays ✅
+- **Incident during verification**: host requests to `localhost:8000` returned raw 500s on any guid_redirects path while in-container requests succeeded. Root cause: the duplicate native-dockerd stack (see Questions) answering host ports with an unmigrated postgres. Resolved by migrating that DB directly; debug scaffolding removed; verification rows cleaned from both DBs.
