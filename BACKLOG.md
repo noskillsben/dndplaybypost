@@ -158,7 +158,7 @@ Deliberately skipped in the restart plan; required for MVP. Keep it simple: emai
 | ID | Item | Pri | Size | Depends on |
 |----|------|-----|------|------------|
 | W-01 | App layout: nav (Dashboard / Compendiums / Modules / Games), auth-aware header, mobile-usable | P0 | M | F-07 |
-| W-02 | DynamicForm v2: nested/list fields, table editor widget, dice-expression input, searchable async reference picker (current `<select>` won't survive 500 spells), client-side validation from schema | P0 | L | S-04 |
+| ✅ W-02 | DynamicForm v2: nested/list fields, table editor widget, dice-expression input, searchable async reference picker (current `<select>` won't survive 500 spells), client-side validation from schema | P0 | L | S-04 |
 | W-03 | Drag-and-drop primitives (equipment to inventory, spells to prepared list); click-to-add fallback for mobile | P1 | M | W-02 |
 | W-04 | Markdown editor with preview (used by compendium, modules, chat) | P0 | S | W-01 |
 | W-05 | Toasts/error surfaces (replace `alert()` in current code) | P1 | S | W-01 |
