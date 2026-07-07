@@ -21,8 +21,10 @@ from sqlalchemy.future import select
 sys.path.insert(0, '/app')
 
 from database import DATABASE_URL
+from core import template_store
 from models.compendium import Compendium, CompendiumEntry
 from models.system import System
+from models.template import EntryTemplate
 
 
 def discover_system_modules():
@@ -101,6 +103,44 @@ async def seed_systems(session: AsyncSession, system_modules):
     
     if skipped_count > 0:
         print(f"  ⊘ Skipped {skipped_count} existing systems")
+
+
+async def seed_templates(session: AsyncSession, system_modules):
+    """Seed entry-type templates from Python SCHEMAS into the entry_templates
+    table. The table is the runtime source of truth (in-app editable); the
+    Python definitions are only defaults, so this is create-or-ignore."""
+    created_count = 0
+    skipped_count = 0
+
+    for system_module in system_modules:
+        if not hasattr(system_module, 'SCHEMAS'):
+            continue
+
+        for entry_type, registration in system_module.SCHEMAS.items():
+            result = await session.execute(
+                select(EntryTemplate).where(
+                    EntryTemplate.system == registration.system,
+                    EntryTemplate.entry_type == entry_type,
+                )
+            )
+            if result.scalar_one_or_none():
+                skipped_count += 1
+                continue
+
+            session.add(EntryTemplate(
+                system=registration.system,
+                entry_type=entry_type,
+                label=entry_type.replace("_", " ").title(),
+                fields=template_store.fields_from_registration(registration),
+            ))
+            created_count += 1
+
+    if created_count > 0:
+        await session.commit()
+        print(f"  ✓ Created {created_count} entry-type templates")
+
+    if skipped_count > 0:
+        print(f"  ⊘ Skipped {skipped_count} existing entry-type templates")
 
 
 async def ensure_core_compendium(session: AsyncSession, system: str) -> str:
@@ -214,6 +254,10 @@ async def main():
     async with async_session() as session:
         # Seed systems first
         await seed_systems(session, system_modules)
+        
+        # Then entry-type templates (entry_templates table is the runtime
+        # source of truth; Python SCHEMAS are just its seed data)
+        await seed_templates(session, system_modules)
         
         # Then seed each system's compendium entries
         for system_module in system_modules:

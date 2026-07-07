@@ -81,15 +81,23 @@ class TestGrant:
 
 class TestChoiceGrantThroughApi:
     @pytest.fixture
-    def race_template(self):
-        from api.schemas import SCHEMA_REGISTRY
-        reg = ObjectRegistration(system="testsys", entry_type="race")
-        reg.add_field("name", ft.short_text(100), required=True)
-        reg.add_field("traits", ft.grant("type:trait", label="Traits"), required=True)
-        reg.add_field("skill_choice", ft.choice("type:skill", label="Skills"), required=False)
-        SCHEMA_REGISTRY.setdefault("testsys", {})["race"] = reg
-        yield reg
-        del SCHEMA_REGISTRY["testsys"]
+    async def race_template(self, client):
+        resp = await client.post("/api/systems", json={"guid": "testsys", "name": "Test System"})
+        assert resp.status_code == 201, resp.text
+        resp = await client.post("/api/templates", json={
+            "system": "testsys",
+            "entry_type": "race",
+            "fields": [
+                {"name": "name", "type": "short_text", "required": True,
+                 "params": {"max_len": 100}},
+                {"name": "traits", "type": "grant", "required": True,
+                 "params": {"query": "type:trait", "label": "Traits"}},
+                {"name": "skill_choice", "type": "choice", "required": False,
+                 "params": {"query": "type:skill", "label": "Skills"}},
+            ],
+        })
+        assert resp.status_code == 201, resp.text
+        return resp.json()
 
     async def test_create_race_with_grants_and_choice(self, client, race_template):
         resp = await client.post("/api/compendium/", json={

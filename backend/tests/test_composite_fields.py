@@ -117,18 +117,29 @@ class TestTable:
 
 class TestCompositeFieldsThroughApi:
     @pytest.fixture
-    def class_template(self):
-        from api.schemas import SCHEMA_REGISTRY
-        reg = ObjectRegistration(system="testsys", entry_type="class")
-        reg.add_field("name", ft.short_text(100), required=True)
-        reg.add_field("hit_die", ft.dice_expression(), required=True)
-        reg.add_field("levels", ft.table({
-            "level": ft.integer(1, 20),
-            "feature": ft.short_text(100),
-        }, min_rows=1), required=True)
-        SCHEMA_REGISTRY.setdefault("testsys", {})["class"] = reg
-        yield reg
-        del SCHEMA_REGISTRY["testsys"]
+    async def class_template(self, client):
+        resp = await client.post("/api/systems", json={"guid": "testsys", "name": "Test System"})
+        assert resp.status_code == 201, resp.text
+        resp = await client.post("/api/templates", json={
+            "system": "testsys",
+            "entry_type": "class",
+            "fields": [
+                {"name": "name", "type": "short_text", "required": True,
+                 "params": {"max_len": 100}},
+                {"name": "hit_die", "type": "dice_expression", "required": True},
+                {"name": "levels", "type": "table", "required": True, "params": {
+                    "columns": [
+                        {"name": "level", "type": "integer",
+                         "params": {"min_val": 1, "max_val": 20}},
+                        {"name": "feature", "type": "short_text",
+                         "params": {"max_len": 100}},
+                    ],
+                    "min_rows": 1,
+                }},
+            ],
+        })
+        assert resp.status_code == 201, resp.text
+        return resp.json()
 
     async def test_create_entry_with_table_and_dice(self, client, class_template):
         resp = await client.post("/api/compendium/", json={

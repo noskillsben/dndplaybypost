@@ -7,9 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import Optional, List, Dict, Any
 from models.compendium import Compendium, CompendiumEntry
+from models.system import System
 from database import get_db
-from api.schemas import SCHEMA_REGISTRY
 from core import guids as guid_service
+from core import template_store
 import datetime
 
 from pydantic import BaseModel, ValidationError
@@ -104,12 +105,17 @@ async def _validate_parent(db: AsyncSession, parent_guid: str, self_guid: Option
         raise HTTPException(status_code=400, detail="Parent entry not found")
 
 
-def _validate_data(system: str, entry_type: str, data: Dict[str, Any]) -> Dict[str, Any]:
-    if system not in SCHEMA_REGISTRY:
-        raise HTTPException(status_code=400, detail="Invalid system")
-    if entry_type not in SCHEMA_REGISTRY[system]:
+async def _validate_data(db: AsyncSession, system: str, entry_type: str,
+                         data: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate entry data against the entry-type template stored in the DB
+    (entry_templates is the runtime source of truth — see core/template_store)."""
+    registration = await template_store.get_registration(db, system, entry_type)
+    if registration is None:
+        system_row = await db.execute(select(System.guid).where(System.guid == system))
+        if not system_row.scalar_one_or_none():
+            raise HTTPException(status_code=400, detail="Invalid system")
         raise HTTPException(status_code=400, detail="Invalid entry type")
-    Model = SCHEMA_REGISTRY[system][entry_type].model()
+    Model = registration.model()
     try:
         return Model(**data).model_dump()
     except ValidationError as e:
@@ -192,7 +198,7 @@ async def create_entry(
     # 2. Validate against schema (name injected if the payload didn't repeat it)
     data_to_validate = payload.data.copy()
     data_to_validate.setdefault("name", payload.name)
-    validated_data = _validate_data(payload.system, payload.entry_type, data_to_validate)
+    validated_data = await _validate_data(db, payload.system, payload.entry_type, data_to_validate)
     
     # 3. Generate or use custom GUID
     if payload.guid:
@@ -243,7 +249,7 @@ async def replace_entry(
 
     data_to_validate = payload.data.copy()
     data_to_validate.setdefault("name", payload.name)
-    validated = _validate_data(entry.system, entry.entry_type, data_to_validate)
+    validated = await _validate_data(db, entry.system, entry.entry_type, data_to_validate)
 
     entry.name = payload.name
     entry.data = validated
@@ -278,7 +284,7 @@ async def patch_entry(
         merged.update(payload.data)
     if "name" in provided and payload.name:
         merged["name"] = payload.name
-    validated = _validate_data(entry.system, entry.entry_type, merged)
+    validated = await _validate_data(db, entry.system, entry.entry_type, merged)
 
     entry.data = validated
     if "name" in provided and payload.name:

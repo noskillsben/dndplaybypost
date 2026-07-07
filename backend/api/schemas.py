@@ -1,65 +1,52 @@
-from fastapi import APIRouter, HTTPException
-import importlib
-import pkgutil
-from pathlib import Path
-import logging
+"""Form-schema endpoints, backed by the entry_templates table.
+
+Templates are data (created/edited in-app via /api/templates); the Python
+definitions under schemas/systems/ are only seed data loaded by seed_data.py.
+"""
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from core import template_store
+from database import get_db
+from models.system import System
+from models.template import EntryTemplate
 
 router = APIRouter(prefix="/api/schemas", tags=["schemas"])
 
-logger = logging.getLogger(__name__)
 
-# Auto-discover and load all system modules.
-SCHEMA_REGISTRY = {}
+async def _system_exists(db: AsyncSession, system: str) -> bool:
+    result = await db.execute(select(System.guid).where(System.guid == system))
+    return result.scalar_one_or_none() is not None
 
-# scans all the files in the schemas/systems directory and loads them into the registry.
-# this is used to dynamically load all the system schemas.
-# each system should have a SYSTEM_INFO and SCHEMAS dictionary.
-# SYSTEM_INFO should have a guid, name, and description.
-# SCHEMAS should have a dictionary of entry types and their corresponding schemas.
-# each schema should have a form() method that returns a dictionary of the schema.
-# each schema should also have a form_data() method that returns a dictionary of the schema data.
-
-
-
-systems_dir = Path(__file__).parent.parent / "schemas" / "systems"
-for _, module_name, _ in pkgutil.iter_modules([str(systems_dir)]):
-    if module_name.startswith('_'):  # Skip __init__ and private modules
-        continue
-    
-    try:
-        module = importlib.import_module(f"schemas.systems.{module_name}")
-        
-        # Each system module should have SYSTEM_INFO and SCHEMAS
-        if hasattr(module, 'SYSTEM_INFO') and hasattr(module, 'SCHEMAS'):
-            system_guid = module.SYSTEM_INFO['guid']
-            SCHEMA_REGISTRY[system_guid] = module.SCHEMAS
-            logger.info(f"Registered system: {system_guid} from module {module_name}")
-        else:
-            logger.warning(f"System module {module_name} is missing SYSTEM_INFO or SCHEMAS")
-    except Exception as e:
-        logger.error(f"Failed to load system module {module_name}: {e}")
 
 @router.get("/systems")
-def list_systems():
+async def list_systems(db: AsyncSession = Depends(get_db)):
     """List all available systems"""
-    return {"systems": list(SCHEMA_REGISTRY.keys())}
+    result = await db.execute(select(System.guid).order_by(System.guid))
+    return {"systems": list(result.scalars().all())}
+
 
 @router.get("/{system}/types")
-def list_entry_types(system: str):
+async def list_entry_types(system: str, db: AsyncSession = Depends(get_db)):
     """List all entry types for a system"""
-    if system not in SCHEMA_REGISTRY:
+    if not await _system_exists(db, system):
         raise HTTPException(status_code=404, detail="System not found")
-    
-    return {"types": list(SCHEMA_REGISTRY[system].keys())}
+    result = await db.execute(
+        select(EntryTemplate.entry_type)
+        .where(EntryTemplate.system == system)
+        .order_by(EntryTemplate.entry_type)
+    )
+    return {"types": list(result.scalars().all())}
+
 
 @router.get("/{system}/{entry_type}")
-def get_schema(system: str, entry_type: str):
+async def get_schema(system: str, entry_type: str,
+                     db: AsyncSession = Depends(get_db)):
     """Get form schema for a specific system and entry type"""
-    if system not in SCHEMA_REGISTRY:
-        raise HTTPException(status_code=404, detail="System not found")
-    
-    if entry_type not in SCHEMA_REGISTRY[system]:
+    registration = await template_store.get_registration(db, system, entry_type)
+    if registration is None:
+        if not await _system_exists(db, system):
+            raise HTTPException(status_code=404, detail="System not found")
         raise HTTPException(status_code=404, detail="Entry type not found")
-    
-    schema_def = SCHEMA_REGISTRY[system][entry_type]
-    return schema_def.form()
+    return registration.form()
