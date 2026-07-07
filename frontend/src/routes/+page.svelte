@@ -4,4 +4,5 @@
 <p>Welcome to the restarted D&D platform, focused on the compendium.</p>
 <nav>
   <a href="/compendium">Compendium Browser</a>
+  <a href="/templates">Template Editor</a>
 </nav>

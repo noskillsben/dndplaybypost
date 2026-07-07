@@ -165,7 +165,12 @@
                 Compendium
             </h1>
             <p class="text-gray-500 mt-1">
-                Explore and manage game system data
+                Explore and manage game system data —
+                <a
+                    href="/templates"
+                    class="text-blue-600 font-bold hover:underline"
+                    >Template Editor</a
+                >
             </p>
         </div>
         {#if selectedSystem && selectedType}
