@@ -72,7 +72,7 @@ Criterion 2 lists the content types explicitly. Each needs: a template (fields),
 
 | ID | Item | Pri | Size | Depends on |
 |----|------|-----|------|------------|
-| D-01 | Foundational lookup types: damage types, conditions, skills, abilities, languages, creature types, sizes, currencies | P0 | M | S-06 |
+| ✅ D-01 | Foundational lookup types: damage types, conditions, skills, abilities, languages, creature types, sizes, currencies | P0 | M | S-06 |
 | D-02 | Equipment templates: weapon (damage, properties, mastery), armor, gear, tool, mount/vehicle, magic item (rarity, attunement, charges) | P0 | M | D-01 |
 | D-03 | Spell template: level, school, casting time, range, components, duration, ritual/concentration flags, class lists, damage/heal dice, scaling | P0 | M | D-01 |
 | D-04 | Species/race template: traits, ability bonuses (2014) / background-based (2024), speed, senses, subraces via parent_link, granted spells/proficiencies as `grant` fields | P0 | M | S-05, D-01 |

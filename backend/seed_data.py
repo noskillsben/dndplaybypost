@@ -130,7 +130,7 @@ async def seed_templates(session: AsyncSession, system_modules):
             session.add(EntryTemplate(
                 system=registration.system,
                 entry_type=entry_type,
-                label=entry_type.replace("_", " ").title(),
+                label=entry_type.replace("_", " ").replace("-", " ").title(),
                 fields=template_store.fields_from_registration(registration),
             ))
             created_count += 1

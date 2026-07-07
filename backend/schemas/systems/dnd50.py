@@ -27,7 +27,7 @@ item.add_markdown_field("description", required=False)
 item.add_field("weight", ft.integer(min_val=0), base_field=True)
 item.add_field("damage_dice", ft.short_text(20), placeholder="1d8")
 item.add_field("damage_type", ft.compendium_link(
-    query="parent:d&d5.0-rule-damage-types",
+    query="type:damage-type",
     label="Damage Type"
 ))
 # Link to weapon category (e.g., "Simple Melee Weapon")
@@ -59,6 +59,48 @@ character_class.add_field("name", ft.short_text(50), base_field=True, required=T
 character_class.add_markdown_field("description", required=False)
 character_class.add_field("hit_die", ft.short_text(5), placeholder="d8")
 character_class.add_field("primary_ability", ft.short_text(50), placeholder="Strength/Dexterity")
+
+# Foundational lookup types (D-01) - things other templates reference by
+# "type:<entry_type>" link queries (spells -> damage types, monsters ->
+# conditions/sizes/creature types, skills -> abilities, ...)
+
+ability = ObjectRegistration(system="d&d5.0", entry_type="ability")
+ability.add_field("name", ft.short_text(50), base_field=True, required=True)
+ability.add_field("abbreviation", ft.short_text(3), required=True)
+ability.add_markdown_field("description", max_len=2000, required=False)
+
+skill = ObjectRegistration(system="d&d5.0", entry_type="skill")
+skill.add_field("name", ft.short_text(50), base_field=True, required=True)
+skill.add_field("ability", ft.compendium_link(query="type:ability", label="Ability"), required=True)
+skill.add_markdown_field("description", max_len=2000, required=False)
+
+damage_type = ObjectRegistration(system="d&d5.0", entry_type="damage-type")
+damage_type.add_field("name", ft.short_text(50), base_field=True, required=True)
+damage_type.add_markdown_field("description", max_len=2000, required=False)
+
+condition = ObjectRegistration(system="d&d5.0", entry_type="condition")
+condition.add_field("name", ft.short_text(50), base_field=True, required=True)
+condition.add_markdown_field("description", max_len=5000, required=False)
+
+language = ObjectRegistration(system="d&d5.0", entry_type="language")
+language.add_field("name", ft.short_text(50), base_field=True, required=True)
+language.add_field("category", ft.select(["standard", "exotic"], label="Category"), required=True)
+language.add_field("script", ft.short_text(50))
+language.add_field("typical_speakers", ft.short_text(100))
+
+creature_type = ObjectRegistration(system="d&d5.0", entry_type="creature-type")
+creature_type.add_field("name", ft.short_text(50), base_field=True, required=True)
+creature_type.add_markdown_field("description", max_len=2000, required=False)
+
+size = ObjectRegistration(system="d&d5.0", entry_type="size")
+size.add_field("name", ft.short_text(50), base_field=True, required=True)
+size.add_field("space", ft.short_text(50), placeholder="5 by 5 ft.")
+size.add_markdown_field("description", max_len=2000, required=False)
+
+currency = ObjectRegistration(system="d&d5.0", entry_type="currency")
+currency.add_field("name", ft.short_text(50), base_field=True, required=True)
+currency.add_field("abbreviation", ft.short_text(5), required=True)
+currency.add_field("value_in_gp", ft.decimal(min_val=0), required=True)
 
 # Seed data - foundational entries created on startup using Pythonic API
 # ---------------------------------------------------------------------
@@ -178,9 +220,161 @@ martial_ranged = rule(
     source=srd_source
 )
 
+# 3. Foundational lookups (D-01)
+
+_ABILITIES = [
+    ("strength", "Strength", "STR", "Measures physical power."),
+    ("dexterity", "Dexterity", "DEX", "Measures agility, reflexes, and balance."),
+    ("constitution", "Constitution", "CON", "Measures endurance and vital force."),
+    ("intelligence", "Intelligence", "INT", "Measures reasoning and memory."),
+    ("wisdom", "Wisdom", "WIS", "Measures perception and insight."),
+    ("charisma", "Charisma", "CHA", "Measures force of personality."),
+]
+ability_entries = [
+    ability(guid=g, name=n, abbreviation=a, description=d, source=srd_source)
+    for g, n, a, d in _ABILITIES
+]
+
+_SKILLS = [
+    ("athletics", "Athletics", "strength"),
+    ("acrobatics", "Acrobatics", "dexterity"),
+    ("sleight-of-hand", "Sleight of Hand", "dexterity"),
+    ("stealth", "Stealth", "dexterity"),
+    ("arcana", "Arcana", "intelligence"),
+    ("history", "History", "intelligence"),
+    ("investigation", "Investigation", "intelligence"),
+    ("nature", "Nature", "intelligence"),
+    ("religion", "Religion", "intelligence"),
+    ("animal-handling", "Animal Handling", "wisdom"),
+    ("insight", "Insight", "wisdom"),
+    ("medicine", "Medicine", "wisdom"),
+    ("perception", "Perception", "wisdom"),
+    ("survival", "Survival", "wisdom"),
+    ("deception", "Deception", "charisma"),
+    ("intimidation", "Intimidation", "charisma"),
+    ("performance", "Performance", "charisma"),
+    ("persuasion", "Persuasion", "charisma"),
+]
+skill_entries = [
+    skill(guid=g, name=n, ability=f"d&d5.0-ability-{a}", source=srd_source)
+    for g, n, a in _SKILLS
+]
+
+_DAMAGE_TYPES = [
+    ("acid", "Acid", "Corrosive damage, like a black dragon's breath."),
+    ("bludgeoning", "Bludgeoning", "Blunt force from hammers, clubs, and falling."),
+    ("cold", "Cold", "The chill of an ice storm or a white dragon's breath."),
+    ("fire", "Fire", "Flames from dragons and spells like fireball."),
+    ("force", "Force", "Pure magical energy, like magic missile."),
+    ("lightning", "Lightning", "Electrical damage from lightning bolt and blue dragons."),
+    ("necrotic", "Necrotic", "Withering energy dealt by undead and dark magic."),
+    ("piercing", "Piercing", "Puncturing damage from arrows, spears, and fangs."),
+    ("poison", "Poison", "Venomous stings and toxic gas."),
+    ("psychic", "Psychic", "Mental damage from psionic abilities."),
+    ("radiant", "Radiant", "Searing divine energy."),
+    ("slashing", "Slashing", "Cutting damage from swords, axes, and claws."),
+    ("thunder", "Thunder", "A concussive burst of sound."),
+]
+damage_type_entries = [
+    damage_type(guid=g, name=n, description=d, source=srd_source)
+    for g, n, d in _DAMAGE_TYPES
+]
+
+_CONDITIONS = [
+    ("blinded", "Blinded", "Can't see; automatically fails sight checks; attack rolls against have advantage, its attacks have disadvantage."),
+    ("charmed", "Charmed", "Can't attack the charmer; charmer has advantage on social checks."),
+    ("deafened", "Deafened", "Can't hear; automatically fails hearing checks."),
+    ("exhaustion", "Exhaustion", "Measured in six cumulative levels, from disadvantage on ability checks to death."),
+    ("frightened", "Frightened", "Disadvantage on checks and attacks while the source of fear is visible; can't willingly approach it."),
+    ("grappled", "Grappled", "Speed becomes 0; ends if the grappler is incapacitated."),
+    ("incapacitated", "Incapacitated", "Can't take actions or reactions."),
+    ("invisible", "Invisible", "Impossible to see without magic; attacks against have disadvantage, its attacks have advantage."),
+    ("paralyzed", "Paralyzed", "Incapacitated, can't move or speak; fails STR and DEX saves; melee hits are crits."),
+    ("petrified", "Petrified", "Transformed to stone; incapacitated; resistance to all damage."),
+    ("poisoned", "Poisoned", "Disadvantage on attack rolls and ability checks."),
+    ("prone", "Prone", "Can only crawl; disadvantage on attacks; melee attacks against have advantage."),
+    ("restrained", "Restrained", "Speed 0; attacks against have advantage, its attacks and DEX saves have disadvantage."),
+    ("stunned", "Stunned", "Incapacitated, can't move; fails STR and DEX saves; attacks against have advantage."),
+    ("unconscious", "Unconscious", "Incapacitated, prone, unaware; fails STR and DEX saves; melee hits are crits."),
+]
+condition_entries = [
+    condition(guid=g, name=n, description=d, source=srd_source)
+    for g, n, d in _CONDITIONS
+]
+
+_LANGUAGES = [
+    ("common", "Common", "standard", "Common", "Humans"),
+    ("dwarvish", "Dwarvish", "standard", "Dwarvish", "Dwarves"),
+    ("elvish", "Elvish", "standard", "Elvish", "Elves"),
+    ("giant", "Giant", "standard", "Dwarvish", "Ogres, giants"),
+    ("gnomish", "Gnomish", "standard", "Dwarvish", "Gnomes"),
+    ("goblin", "Goblin", "standard", "Dwarvish", "Goblinoids"),
+    ("halfling", "Halfling", "standard", "Common", "Halflings"),
+    ("orc", "Orc", "standard", "Dwarvish", "Orcs"),
+    ("abyssal", "Abyssal", "exotic", "Infernal", "Demons"),
+    ("celestial", "Celestial", "exotic", "Celestial", "Celestials"),
+    ("draconic", "Draconic", "exotic", "Draconic", "Dragons, dragonborn"),
+    ("deep-speech", "Deep Speech", "exotic", "", "Aboleths, cloakers"),
+    ("infernal", "Infernal", "exotic", "Infernal", "Devils"),
+    ("primordial", "Primordial", "exotic", "Dwarvish", "Elementals"),
+    ("sylvan", "Sylvan", "exotic", "Elvish", "Fey creatures"),
+    ("undercommon", "Undercommon", "exotic", "Elvish", "Underworld traders"),
+]
+language_entries = [
+    language(guid=g, name=n, category=c, script=s, typical_speakers=t,
+             source=srd_source)
+    for g, n, c, s, t in _LANGUAGES
+]
+
+_CREATURE_TYPES = [
+    ("aberration", "Aberration", "Utterly alien beings, such as aboleths and mind flayers."),
+    ("beast", "Beast", "Nonhumanoid creatures of the natural world."),
+    ("celestial", "Celestial", "Creatures native to the Upper Planes, such as angels."),
+    ("construct", "Construct", "Made, not born, such as golems."),
+    ("dragon", "Dragon", "Large reptilian creatures of ancient origin."),
+    ("elemental", "Elemental", "Creatures native to the elemental planes."),
+    ("fey", "Fey", "Creatures of magic tied to the forces of nature."),
+    ("fiend", "Fiend", "Creatures of wickedness native to the Lower Planes."),
+    ("giant", "Giant", "Towering humanlike creatures, such as ogres and trolls."),
+    ("humanoid", "Humanoid", "The main peoples of the D&D world."),
+    ("monstrosity", "Monstrosity", "Frightening creatures of unnatural origin."),
+    ("ooze", "Ooze", "Gelatinous creatures like the gelatinous cube."),
+    ("plant", "Plant", "Vegetable creatures, such as shambling mounds."),
+    ("undead", "Undead", "Once-living creatures brought to unlife."),
+]
+creature_type_entries = [
+    creature_type(guid=g, name=n, description=d, source=srd_source)
+    for g, n, d in _CREATURE_TYPES
+]
+
+_SIZES = [
+    ("tiny", "Tiny", "2 1/2 by 2 1/2 ft."),
+    ("small", "Small", "5 by 5 ft."),
+    ("medium", "Medium", "5 by 5 ft."),
+    ("large", "Large", "10 by 10 ft."),
+    ("huge", "Huge", "15 by 15 ft."),
+    ("gargantuan", "Gargantuan", "20 by 20 ft. or larger"),
+]
+size_entries = [
+    size(guid=g, name=n, space=s, source=srd_source)
+    for g, n, s in _SIZES
+]
+
+_CURRENCIES = [
+    ("copper", "Copper piece", "cp", 0.01),
+    ("silver", "Silver piece", "sp", 0.1),
+    ("electrum", "Electrum piece", "ep", 0.5),
+    ("gold", "Gold piece", "gp", 1.0),
+    ("platinum", "Platinum piece", "pp", 10.0),
+]
+currency_entries = [
+    currency(guid=g, name=n, abbreviation=a, value_in_gp=v, source=srd_source)
+    for g, n, a, v in _CURRENCIES
+]
+
 # Collect all seed entries
 SEED_ENTRIES = [
-    # Damage Types
+    # Damage Types (legacy rules-hierarchy demo entries)
     damage_types,
     slashing,
     bludgeoning,
@@ -192,14 +386,31 @@ SEED_ENTRIES = [
     simple_melee,
     simple_ranged,
     martial_melee,
-    martial_ranged
+    martial_ranged,
+    # Foundational lookups (D-01)
+    *ability_entries,
+    *skill_entries,
+    *damage_type_entries,
+    *condition_entries,
+    *language_entries,
+    *creature_type_entries,
+    *size_entries,
+    *currency_entries,
 ]
 
 SCHEMAS = {
     "rule": rule,
     "item": item,
     "spell": spell,
-    "class": character_class
+    "class": character_class,
+    "ability": ability,
+    "skill": skill,
+    "damage-type": damage_type,
+    "condition": condition,
+    "language": language,
+    "creature-type": creature_type,
+    "size": size,
+    "currency": currency,
 }
 
 # Logic Definitions for Baking Engine

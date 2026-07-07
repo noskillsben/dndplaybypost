@@ -52,6 +52,12 @@ Session log for autonomous work through BACKLOG.md / ROADMAP.md. Newest entries 
   - D-12 Lasers & Feelings smoke ✅ (automated + live HTTP; the "under an hour in the browser" walkthrough is Ben's to enjoy — everything it needs is in the UI at `/templates`).
 - ROADMAP Phase 2 ticked. Next: Phase 3, starting with D-01 (foundational lookup types) per Ben's "if time remains" instruction.
 
+### 2026-07-07 — Phase 3 started (D-01 only, per instruction)
+
+- **D-01**: 8 foundational lookup entry types added to `schemas/systems/dnd50.py` as seed data (per S-06, templates are data — these are just defaults): `ability` (name/abbreviation/description), `skill` (compendium_link → `type:ability`), `damage-type`, `condition`, `language` (select standard/exotic + script + typical speakers), `creature-type`, `size`, `currency` (abbreviation + decimal value_in_gp). 93 seed entries: 6 abilities, 18 skills (each linked to its ability guid), 13 damage types, 15 conditions, 16 languages, 14 creature types, 6 sizes, 5 currencies — SRD-sourced. Design decision: dedicated entry types (queried via `type:damage-type` etc.) instead of the legacy rule-hierarchy pattern, since D-02+ templates will reference them with clean link queries; the item template's `damage_type` field migrated to `query="type:damage-type"`. The legacy rule-hierarchy damage-type demo entries kept (they exercise parent_link). Seed label derivation now also converts hyphens ("Damage Type", not "Damage-Type"). 4 new tests (222 backend total). Live rebuild verified: 8 templates + 93 entries created on PG, skill form carries `type:ability` query over HTTP.
+- Note for Ben: existing DBs keep the old item `damage_type` query (`parent:d&d5.0-rule-damage-types`) because template seeding is create-or-ignore — only fresh DBs (or an in-app template edit at `/templates`) pick up `type:damage-type`.
+- D-01 was the last item Ben authorized for this session ("if Phase 2 finishes with time to spare, pull D-01 from Phase 3"). Stopping here.
+
 ### 2026-07-06 — Phase 1 complete
 
 - **S-01** (committed earlier): decimal/boolean/select primitive field types in schema builder + tests.

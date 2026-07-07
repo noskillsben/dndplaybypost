@@ -271,3 +271,46 @@ class TestTemplateList:
         assert fields["level"]["max"] == 9
         assert fields["level"]["required"] is True
         assert fields["description"]["type"] == "markdown"
+
+
+class TestFoundationalLookups:
+    """D-01: lookup entry types seeded as templates + compendium entries."""
+
+    LOOKUP_TYPES = {"ability", "skill", "damage-type", "condition", "language",
+                    "creature-type", "size", "currency"}
+
+    async def test_lookup_templates_seeded(self, client):
+        resp = await client.get("/api/templates", params={"system": "d&d5.0"})
+        types = {t["entry_type"] for t in resp.json()["templates"]}
+        assert self.LOOKUP_TYPES <= types
+
+    async def test_skill_form_links_ability(self, client):
+        resp = await client.get("/api/schemas/d&d5.0/skill")
+        assert resp.status_code == 200
+        fields = {f["name"]: f for f in resp.json()["fields"]}
+        assert fields["ability"]["type"] == "compendium_link"
+        assert fields["ability"]["query"] == "type:ability"
+        assert fields["ability"]["required"] is True
+
+    async def test_item_damage_type_uses_lookup_query(self, client):
+        resp = await client.get("/api/schemas/d&d5.0/item")
+        fields = {f["name"]: f for f in resp.json()["fields"]}
+        assert fields["damage_type"]["query"] == "type:damage-type"
+
+    def test_seed_entries_cover_lookup_types(self):
+        from schemas.systems import dnd50
+        by_type = {}
+        for entry in dnd50.SEED_ENTRIES:
+            by_type.setdefault(entry.entry_type, []).append(entry)
+        assert len(by_type["ability"]) == 6
+        assert len(by_type["skill"]) == 18
+        assert len(by_type["damage-type"]) == 13
+        assert len(by_type["condition"]) == 15
+        assert len(by_type["language"]) == 16
+        assert len(by_type["creature-type"]) == 14
+        assert len(by_type["size"]) == 6
+        assert len(by_type["currency"]) == 5
+        for entry in by_type["skill"]:
+            assert entry.data["ability"].startswith("d&d5.0-ability-")
+        guids = [e.guid for e in dnd50.SEED_ENTRIES]
+        assert len(guids) == len(set(guids))
