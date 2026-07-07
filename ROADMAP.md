@@ -9,7 +9,7 @@
 
 - [x] Phase 0 — Make it run (2026-07-06)
 - [x] Phase 1 — Schema engine v1 (2026-07-06)
-- [ ] Phase 2 — Schema engine v2: composite fields + template editor
+- [x] Phase 2 — Schema engine v2: composite fields + template editor
 - [ ] Phase 3 — D&D 5e content + import/export
 - [ ] Phase 4 — Users, GMs, sessions
 - [ ] Phase 5 — Module / adventure builder
@@ -44,7 +44,7 @@ Rebuild `ObjectRegistration` + field types (primitives and reference fields), th
 - Create a "damage type" and an "item" template in Python seed code; create/edit/list/delete entries through the UI.
 - Invalid data is rejected server-side with readable errors in the form.
 
-## Phase 2 — Schema engine v2: composite fields + in-app template editor
+## Phase 2 — Schema engine v2: composite fields + in-app template editor — ✅ COMPLETE (2026-07-07)
 
 **Goal:** A non-programmer can create a new content type in the browser.
 **Backlog:** S-04, S-05, S-06, W-02, C-02, C-06
@@ -137,7 +137,7 @@ Full end-to-end dogfood: run a real one-shot play-by-post with friends using onl
 | Milestone | You can demo… | Phases | Status |
 |---|---|---|---|
 | M1 "It boots" | Healthy stack, tests, CI | 0 | ✅ 2026-07-06 |
-| M2 "Forms from data" | Entry types → validated forms | 1–2 | Phase 1 ✅, Phase 2 open |
+| M2 "Forms from data" | Entry types → validated forms | 1–2 | Phases 1–2 ✅ |
 | M3 "The compendium" | Full SRD browsable, round-trip export | 3 | |
 | M4 "Multiplayer shell" | GM + players in a game | 4 | |
 | M5 "The adventure" | Authored module, rollable tables | 5 | |

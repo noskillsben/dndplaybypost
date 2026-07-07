@@ -83,7 +83,7 @@ Criterion 2 lists the content types explicitly. Each needs: a template (fields),
 | D-09 | Monster/stat-block template: full 5e stat block — AC, HP formula, speeds, abilities, saves, skills, resistances/immunities, senses, CR, traits, actions (with attack/damage dice), legendary/lair actions | P0 | L | D-01 |
 | D-10 | Rules-text template: hierarchical rules chapters/sections (parent_link tree) for basic rules reference | P0 | S | D-01 |
 | D-11 | SRD 5.2 seed import: script that loads SRD content (spells, ~monsters, items, classes…) from the SRD_CC_v5.2.md / Fight Club XML data already collected (2,929 entries from previous iteration) into the templates above | P0 | L | D-02…D-10 |
-| D-12 | Second-system smoke test: define a 1-page RPG (Lasers & Feelings) entirely via the in-app template editor to prove system-agnosticism | P1 | M | S-06 |
+| ✅ D-12 | Second-system smoke test: define a 1-page RPG (Lasers & Feelings) entirely via the in-app template editor to prove system-agnosticism | P1 | M | S-06 |
 
 ## EPIC 4 — Compendium Import/Export (MVP criterion 2b)
 
